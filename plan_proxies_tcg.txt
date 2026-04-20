@@ -1,0 +1,546 @@
+Nombre (ejemplo)
+
+ProxyForge / CardProxyHub / DeckPrint
+
+Objetivo
+
+Crear una plataforma web muy profesional, muy animada, y muy elegante donde los usuarios puedan:
+
+Subir imágenes de cartas
+Crear decks completos
+Imprimir proxies de cartas TCG
+Recibirlas en casa
+Propuesta de valor
+Precio accesible (~1€ por carta)
+Envíos globales (más barato desde España)
+Compatible con múltiples TCG:
+Magic: The Gathering
+Pokémon
+Yu-Gi-Oh
+Lorcana
+One Piece
+etc.
+Mensaje clave (MUY IMPORTANTE)
+Son PROXIES (NO cartas oficiales)
+Uso:
+Testing de decks
+Juego casual
+Ahorro mientras decides comprar la original
+NO válidas para torneos oficiales
+
+👉 Esto es clave legalmente y debe aparecer en:
+
+Home
+Footer
+Checkout
+
+2. REFERENCIAS DEL MERCADO (IMPORTANTE PARA FEATURES)
+Funcionalidades reales detectadas
+Subida de imágenes (JPG, PNG, WEBP)
+Subida de decklist completa
+Previsualización antes de imprimir
+Generación PDF listo para imprenta
+Precios por volumen (clave)
+Multi-TCG (muy importante)
+Envío global
+No afiliación con publishers
+3. MODELO DE NEGOCIO
+Pricing (OBLIGATORIO implementar así)
+Cantidad	Precio
+1–9 cartas	1.20 €
+10–49	1.00 €
+50–199	0.85 €
+200+	0.70 €
+
+👉 Basado en mercado real
+
+Extras monetizables
+Acabado foil (+0.30€)
+Premium cardstock
+Envío express
+Packs prehechos (EDH, etc.)
+4. FUNCIONALIDADES CORE
+4.1 Upload de cartas
+Drag & Drop
+Multi-upload
+Validaciones:
+Formatos: JPG, PNG, WEBP
+Resolución mínima: 300 DPI
+Tamaño recomendado: 63x88mm
+4.2 Editor de carta
+Crop automático
+Ajuste de bleed
+Preview en tiempo real
+Selector:
+Normal / Foil
+Cantidad
+4.3 Deck builder
+Input:
+Lista texto (tipo MTG Arena)
+CSV
+Autodetección de cartas
+Agrupación por deck
+4.4 Carrito inteligente
+Precio dinámico por volumen
+Cálculo automático envío:
+España (barato)
+Europa
+Internacional
+4.5 Checkout
+Stripe
+PayPal
+Dirección envío
+4.6 Sistema de pedidos
+
+Estados:
+
+Pending
+Processing
+Printing
+Shipped
+Delivered
+4.7 Generador PDF impresión
+Grid layout
+Marcas de corte
+Sangrado
+Export HD
+4.8 Panel admin
+Ver pedidos
+Gestión envíos
+Gestión usuarios
+Métricas
+
+6. ARQUITECTURA TÉCNICA
+Frontend
+Next.js
+Tailwind
+React Query
+Backend
+Node.js + Express / NestJS
+Base de datos
+PostgreSQL
+Storage
+AWS S3 (imágenes)
+CDN
+Cloudflare
+Generación PDF
+Puppeteer / PDFKit
+
+# 🧠 1. ENFOQUE GENERAL (IMPORTANTE)
+
+Claude no va a construir “todo de golpe”. Necesitas:
+
+👉 dividir el proyecto en **módulos pequeños y testeables**
+👉 darle **contexto + contratos claros (inputs/outputs)**
+👉 evitar prompts ambiguos
+
+---
+
+# 🏗️ 2. STACK RECOMENDADO (PRAGMÁTICO)
+
+## 🔹 Frontend
+
+* Next.js (App Router)
+* TypeScript
+* Tailwind
+
+## 🔹 Backend
+
+* Next.js API routes (para simplificar)
+* o NestJS si quieres escalar
+
+## 🔹 Servicios externos
+
+* Stripe → pagos
+* AWS S3 → imágenes
+* Cloudflare → CDN
+* Resend → emails
+
+## 🔹 Procesamiento
+
+* Node + Sharp (imágenes)
+* PDFKit o Puppeteer → generación de PDFs
+
+---
+
+# 📁 3. ESTRUCTURA DE PROYECTO (CLAVE PARA CLAUDE)
+
+Claude funciona mejor con estructura clara:
+
+```
+/app
+  /api
+    /upload
+    /cards
+    /orders
+    /checkout
+  /editor
+  /cart
+  /dashboard
+
+/components
+  CardUploader.tsx
+  CardPreview.tsx
+  PriceCalculator.tsx
+
+/lib
+  pricing.ts
+  imageProcessor.ts
+  pdfGenerator.ts
+  validators.ts
+
+/services
+  stripe.ts
+  storage.ts
+  shipping.ts
+
+/types
+  card.ts
+  order.ts
+  user.ts
+
+/utils
+  constants.ts
+  helpers.ts
+
+/prisma
+  schema.prisma
+```
+
+---
+
+# 🧾 4. MODELO DE DATOS (CRÍTICO)
+
+## 🃏 Card
+
+```ts
+type Card = {
+  id: string
+  imageUrl: string
+  name?: string
+  game: 'mtg' | 'pokemon' | 'lorcana' | 'custom'
+  quantity: number
+  dpiValid: boolean
+}
+```
+
+## 🛒 Order
+
+```ts
+type Order = {
+  id: string
+  userId: string
+  cards: Card[]
+  totalPrice: number
+  shippingAddress: string
+  status: 'pending' | 'paid' | 'printing' | 'shipped'
+}
+```
+
+---
+
+# 💰 5. SISTEMA DE PRECIOS (IMPORTANTE)
+
+Archivo: `/lib/pricing.ts`
+
+```ts
+export function calculatePrice(quantity: number) {
+  if (quantity < 10) return quantity * 1.2
+  if (quantity < 50) return quantity * 1
+  if (quantity < 200) return quantity * 0.8
+  return quantity * 0.6
+}
+```
+
+👉 Esto es clave:
+**más cartas = más barato automáticamente**
+
+---
+
+# 📦 6. FLUJO COMPLETO DEL USUARIO
+
+## 🔁 Flujo
+
+1. Subir cartas
+2. Validar imagen
+3. Guardar en S3
+4. Añadir al carrito
+5. Calcular precio dinámico
+6. Checkout (Stripe)
+7. Generar PDF
+8. Enviar a imprenta
+
+---
+
+# 🔧 7. SERVICIOS (BACKEND REAL)
+
+## 📤 Upload Service
+
+Ruta: `/api/upload`
+
+```ts
+- recibir imagen
+- validar formato (jpg/png)
+- validar tamaño (300 DPI)
+- subir a S3
+- devolver URL
+```
+
+---
+
+## 🧠 Image Processor
+
+Archivo: `/lib/imageProcessor.ts`
+
+Funciones:
+
+* resize
+* crop a formato carta
+* añadir borde si necesario
+
+---
+
+## 🧾 PDF Generator
+
+Archivo: `/lib/pdfGenerator.ts`
+
+Debe:
+
+* colocar múltiples cartas por hoja (A4)
+* márgenes de corte
+* exportar PDF listo para imprenta
+
+---
+
+## 💳 Stripe Service
+
+Archivo: `/services/stripe.ts`
+
+Funciones:
+
+* createCheckoutSession
+* handleWebhook
+
+---
+
+## 🚚 Shipping Service
+
+Archivo: `/services/shipping.ts`
+
+```ts
+export function calculateShipping(country: string) {
+  if (country === 'Spain') return 3
+  if (country === 'EU') return 6
+  return 10
+}
+```
+
+---
+
+# 🧠 8. PROMPTS PARA CLAUDE (MUY IMPORTANTE)
+
+## ❌ MAL prompt
+
+> “hazme una web de cartas”
+
+## ✅ BIEN
+
+### Ejemplo 1 – uploader
+
+```
+Create a React component called CardUploader with:
+- drag and drop support
+- file validation (jpg/png)
+- max size 5MB
+- preview image
+- callback on upload success
+
+Return clean TypeScript code.
+```
+
+---
+
+### Ejemplo 2 – API upload
+
+```
+Create a Next.js API route for uploading images:
+- Accept multipart/form-data
+- Validate file type (jpg/png)
+- Upload to AWS S3
+- Return public URL
+
+Use best practices and error handling.
+```
+
+---
+
+### Ejemplo 3 – pricing logic
+
+```
+Create a pricing function:
+- <10 cards: 1.2€
+- 10–50: 1€
+- 50–200: 0.8€
+- 200+: 0.6€
+
+Return TypeScript function + tests.
+```
+
+---
+
+# 🧩 9. COMPONENTES CLAVE
+
+## 🃏 CardUploader
+
+* Drag & drop
+* preview
+
+## 🛒 Cart
+
+* lista de cartas
+* precio dinámico
+
+## 📊 PriceCalculator
+
+* recalcula en tiempo real
+
+## 👁️ Preview
+
+* muestra cómo se imprimirá
+
+---
+
+# ⚙️ 10. GENERACIÓN DE PDF (CORE DEL NEGOCIO)
+
+👉 Aquí está la dificultad real
+
+Debes:
+
+* tamaño carta: 63x88mm
+* meter 9 cartas por A4
+* añadir sangrado
+
+Claude prompt:
+
+```
+Generate a Node.js function that:
+- takes an array of card image URLs
+- arranges them in a 3x3 grid
+- outputs a print-ready PDF (A4)
+- includes margins for cutting
+
+Use pdf-lib or similar library.
+```
+
+---
+
+# ☁️ 11. STORAGE (IMÁGENES)
+
+## AWS S3 estructura
+
+```
+/cards/{userId}/{cardId}.jpg
+/orders/{orderId}/print.pdf
+```
+
+---
+
+# 🔐 12. VALIDACIONES IMPORTANTES
+
+* resolución mínima
+* formato correcto
+* evitar archivos corruptos
+
+---
+
+# ⚠️ 13. PROBLEMAS REALES (QUE DEBES PREVER)
+
+## 🚨 1. Imágenes malas
+
+Solución:
+
+* auto-rechazo
+* warning UX
+
+## 🚨 2. PDFs mal alineados
+
+Solución:
+
+* plantillas fijas
+
+## 🚨 3. Costes de envío
+
+Solución:
+
+* calcular antes del pago
+
+---
+
+# 🧱 14. ROADMAP DE DESARROLLO
+
+## 🟢 Semana 1
+
+* setup proyecto
+* uploader básico
+
+## 🟡 Semana 2
+
+* carrito + pricing
+
+## 🔵 Semana 3
+
+* Stripe + checkout
+
+## 🟣 Semana 4
+
+* generación PDF
+
+## 🔴 Semana 5
+
+* envío + panel admin
+
+---
+
+# 🧠 15. PANEL ADMIN (MUY IMPORTANTE)
+
+Debe permitir:
+
+* ver pedidos
+* descargar PDF
+* marcar como enviado
+
+---
+
+# 🔥 16. DIFERENCIADOR TÉCNICO
+
+👉 Automatización total:
+
+* upload → PDF automático
+* pago → cola de impresión
+
+---
+
+# 📊 17. ESCALABILIDAD
+
+Futuro:
+
+* colas (BullMQ)
+* workers para PDFs
+* CDN global
+
+---
+
+# 🧠 RESUMEN FINAL
+
+Para programarlo con Claude necesitas:
+
+👉 estructura clara de carpetas
+👉 prompts pequeños y específicos
+👉 separar servicios
+👉 controlar inputs/outputs
+
+Y el núcleo real es:
+
+💥 subida de imágenes
+💥 cálculo de precio por volumen
+💥 generación automática de PDFs
