@@ -42,8 +42,7 @@ export default function PriceCalculator() {
 
       {nextTier && (
         <div className="next-tier-tip">
-          💡 Añade {nextTier.min - totalCards} carta{nextTier.min - totalCards !== 1 ? 's' : ''} más →&nbsp;
-          {nextTier.price.toFixed(2)} €/carta
+          💡 Añade {nextTier.min - totalCards} carta{nextTier.min - totalCards !== 1 ? 's' : ''}{' '}más → {nextTier.price.toFixed(2)} €/carta
         </div>
       )}
     </div>

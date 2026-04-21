@@ -5,7 +5,23 @@
       "Bash(npx tsc *)",
       "Bash(npm run *)",
       "Bash(curl *)",
-      "Bash(python -c \"import sys, re; html = sys.stdin.read\\(\\); m = re.search\\(r'<section class=\\\\\"ep-hero\\\\\".*?</section>', html, re.S\\); print\\(m.group\\(0\\)[:2500] if m else 'HERO NOT FOUND'\\)\")"
+      "Bash(python -c \"import sys, re; html = sys.stdin.read\\(\\); m = re.search\\(r'<section class=\\\\\"ep-hero\\\\\".*?</section>', html, re.S\\); print\\(m.group\\(0\\)[:2500] if m else 'HERO NOT FOUND'\\)\")",
+      "Bash(xargs grep *)",
+      "WebSearch",
+      "WebFetch(domain:infoestancos.es)",
+      "WebFetch(domain:www.correos.es)",
+      "WebFetch(domain:community.postcrossing.com)",
+      "WebFetch(domain:www.packlink.es)",
+      "WebFetch(domain:fesofi.es)",
+      "WebFetch(domain:elcodigopostal.com)",
+      "WebFetch(domain:tarifas.net)",
+      "WebFetch(domain:tramitefacil.es)",
+      "WebFetch(domain:asest.es)",
+      "Bash(python3 -c ' *)",
+      "Bash(python -c ' *)",
+      "Bash(identify F:/ProyectosClaude/EuroProxies/public/favicon.png)",
+      "Bash(python3 *)",
+      "Bash(python *)"
     ]
   }
 }

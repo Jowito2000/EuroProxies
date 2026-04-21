@@ -69,8 +69,11 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
-      <div className="mb-8">
+    <div className="max-w-6xl mx-auto px-4 py-12" style={{ position: 'relative' }}>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05] select-none flex items-center justify-center -z-10">
+        <img src="/favicon.png" alt="" className="max-w-3xl w-full object-contain" />
+      </div>
+      <div className="mb-8 relative z-10">
         <div className="section-tag mb-3">Carrito</div>
         <h1 className="section-title">{totalCards} carta{totalCards !== 1 ? 's' : ''} en tu pedido</h1>
       </div>

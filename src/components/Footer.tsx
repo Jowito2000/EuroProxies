@@ -1,7 +1,10 @@
 export default function Footer() {
   return (
-    <footer className="footer-main">
-      <div className="max-w-6xl mx-auto px-4 py-12">
+    <footer className="footer-main" style={{ position: 'relative', overflow: 'hidden' }}>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05] select-none flex items-center justify-center -z-10">
+        <img src="/iconSimply.png" alt="" className="max-w-[400px] w-full object-contain" />
+      </div>
+      <div className="max-w-6xl mx-auto px-4 py-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
 
           <div className="md:col-span-2">
@@ -30,15 +33,15 @@ export default function Footer() {
             <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
               <li className="flex justify-between">
                 <span>España</span>
-                <span style={{ color: '#c4b5fd' }}>3€</span>
+                <span style={{ color: '#c4b5fd' }}>4,99€</span>
               </li>
               <li className="flex justify-between">
                 <span>Europa</span>
-                <span style={{ color: '#c4b5fd' }}>6€</span>
+                <span style={{ color: '#c4b5fd' }}>11,99€</span>
               </li>
               <li className="flex justify-between">
                 <span>Internacional</span>
-                <span style={{ color: '#c4b5fd' }}>10€</span>
+                <span style={{ color: '#c4b5fd' }}>15,99€</span>
               </li>
             </ul>
           </div>
@@ -48,10 +51,10 @@ export default function Footer() {
               Precios
             </h4>
             <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              <li className="flex justify-between"><span>1–9 cartas</span><span style={{ color: '#c4b5fd' }}>1.20€</span></li>
-              <li className="flex justify-between"><span>10–49 cartas</span><span style={{ color: '#c4b5fd' }}>1.00€</span></li>
-              <li className="flex justify-between"><span>50–199 cartas</span><span style={{ color: '#c4b5fd' }}>0.85€</span></li>
-              <li className="flex justify-between"><span>200+ cartas</span><span style={{ color: '#c4b5fd' }}>0.70€</span></li>
+              <li className="flex justify-between"><span>1–9 cartas</span><span style={{ color: '#c4b5fd' }}>1.50€</span></li>
+              <li className="flex justify-between"><span>10–49 cartas</span><span style={{ color: '#c4b5fd' }}>1.25€</span></li>
+              <li className="flex justify-between"><span>50–199 cartas</span><span style={{ color: '#c4b5fd' }}>1.00€</span></li>
+              <li className="flex justify-between"><span>200+ cartas</span><span style={{ color: '#c4b5fd' }}>0.85€</span></li>
             </ul>
           </div>
         </div>
@@ -67,11 +70,14 @@ export default function Footer() {
         </div>
 
         <div
-          className="pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs"
+          className="pt-4 pb-4 grid grid-cols-3 items-end text-xs gap-4"
           style={{ borderTop: '1px solid rgba(124,58,237,0.12)', color: 'var(--color-text-muted)' }}
         >
-          <span>© {new Date().getFullYear()} EuroProxy. Todos los derechos reservados.</span>
-          <span style={{ color: 'rgba(124,58,237,0.5)' }}>Hecho con 💜 para la comunidad TCG</span>
+          <span className="pb-2">© {new Date().getFullYear()} EuroProxy. Todos los derechos reservados.</span>
+          <div className="flex justify-center items-end overflow-hidden" style={{ height: '80px' }}>
+            <img src="/favicon.png" alt="EuroProxy" className="w-56 object-contain object-bottom opacity-30" style={{ height: '224px', marginBottom: '-60px' }} />
+          </div>
+          <span className="text-right pb-2" style={{ color: 'rgba(124,58,237,0.5)' }}>Tu deck, nuestra calidad</span>
         </div>
       </div>
     </footer>

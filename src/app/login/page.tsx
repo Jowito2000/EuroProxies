@@ -22,7 +22,7 @@ function LoginForm() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Fondo mesh */}
+
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
         background: `
@@ -52,10 +52,11 @@ function LoginForm() {
       }} />
 
       {/* Contenido */}
-      <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 10, animation: 'auth-card-in 0.55s cubic-bezier(0.2,0.8,0.2,1) both' }}>
+      <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 10, animation: 'auth-card-in 0.55s cubic-bezier(0.2,0.8,0.2,1) both', marginTop: '-10vh' }}>
 
         {/* Logo */}
-        <Link href="/" className="navbar-logo" style={{ display: 'block', textAlign: 'center', marginBottom: 32, fontSize: '1.5rem' }}>
+        <Link href="/" className="navbar-logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 32, fontSize: '1.5rem', textDecoration: 'none' }}>
+          <img src="/InicioSesionColor.png" alt="EuroProxy" style={{ width: 96, height: 96, marginBottom: 4, objectFit: 'contain' }} />
           EuroProxy
         </Link>
 
@@ -152,21 +153,6 @@ function LoginForm() {
               </button>
             </form>
 
-            {/* Footer de la card */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px', color: 'rgba(136,146,164,0.5)', fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.2), transparent)' }} />
-              acceso seguro
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(124,58,237,0.2), transparent)' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {['🔒 SSL', '🛡 Datos protegidos', '✓ GDPR'].map(b => (
-                <span key={b} style={{
-                  fontSize: '0.72rem', fontWeight: 600, color: 'rgba(136,146,164,0.6)',
-                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-                  padding: '4px 10px', borderRadius: 99,
-                }}>{b}</span>
-              ))}
-            </div>
           </div>
         </div>
       </div>

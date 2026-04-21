@@ -15,7 +15,10 @@ export default function Navbar() {
 
   return (
     <header className="navbar-glass">
-      <nav className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="navbar-watermark" aria-hidden="true">
+        <img src="/favicon.png" alt="" />
+      </div>
+      <nav className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between" style={{ position: 'relative', zIndex: 1 }}>
         <Link href="/" className="navbar-logo">
           EuroProxy
         </Link>

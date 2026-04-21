@@ -6,6 +6,7 @@ import { signup } from '@/app/actions/auth'
 
 const BG_ORBS = (
   <>
+
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: `radial-gradient(ellipse 70% 60% at 65% 40%, rgba(124,58,237,0.18) 0%, transparent 60%), radial-gradient(ellipse 50% 50% at 20% 75%, rgba(79,70,229,0.12) 0%, transparent 60%)` }} />
     <div style={{ position: 'absolute', width: 480, height: 480, top: -140, right: '-8%', borderRadius: '50%', pointerEvents: 'none', background: 'radial-gradient(circle, rgba(124,58,237,0.28) 0%, transparent 70%)', filter: 'blur(70px)', animation: 'orb-drift-1 18s ease-in-out infinite' }} />
     <div style={{ position: 'absolute', width: 340, height: 340, bottom: '-10%', left: '-4%', borderRadius: '50%', pointerEvents: 'none', background: 'radial-gradient(circle, rgba(79,46,229,0.22) 0%, transparent 70%)', filter: 'blur(60px)', animation: 'orb-drift-2 22s ease-in-out infinite' }} />
@@ -23,8 +24,9 @@ export default function SignupPage() {
     <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 16px', position: 'relative', overflow: 'hidden' }}>
       {BG_ORBS}
 
-      <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 10, animation: 'auth-card-in 0.55s cubic-bezier(0.2,0.8,0.2,1) both' }}>
-        <Link href="/" className="navbar-logo" style={{ display: 'block', textAlign: 'center', marginBottom: 32, fontSize: '1.5rem' }}>
+      <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 10, animation: 'auth-card-in 0.55s cubic-bezier(0.2,0.8,0.2,1) both', marginTop: '-10vh' }}>
+        <Link href="/" className="navbar-logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 32, fontSize: '1.5rem', textDecoration: 'none' }}>
+          <img src="/InicioSesionColor.png" alt="EuroProxy" style={{ width: 96, height: 96, marginBottom: 4, objectFit: 'contain' }} />
           EuroProxy
         </Link>
 
@@ -85,16 +87,6 @@ export default function SignupPage() {
               Uso casual y testing únicamente · No válido para torneos oficiales
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0 14px', color: 'rgba(136,146,164,0.5)', fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.2), transparent)' }} />
-              registro gratuito
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(124,58,237,0.2), transparent)' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {['🔒 SSL', '🛡 Datos protegidos', '✓ GDPR'].map(b => (
-                <span key={b} style={{ fontSize: '0.72rem', fontWeight: 600, color: 'rgba(136,146,164,0.6)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', padding: '4px 10px', borderRadius: 99 }}>{b}</span>
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -110,8 +102,9 @@ function EmailSentScreen() {
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(16,185,129,0.1) 0%, transparent 60%), radial-gradient(ellipse 50% 50% at 20% 75%, rgba(79,70,229,0.1) 0%, transparent 60%)' }} />
       <div style={{ position: 'absolute', width: 420, height: 420, top: -100, right: '-5%', borderRadius: '50%', pointerEvents: 'none', background: 'radial-gradient(circle, rgba(16,185,129,0.18) 0%, transparent 70%)', filter: 'blur(70px)', animation: 'orb-drift-1 18s ease-in-out infinite' }} />
 
-      <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 10, animation: 'auth-card-in 0.6s cubic-bezier(0.2,0.8,0.2,1) both' }}>
-        <Link href="/" className="navbar-logo" style={{ display: 'block', textAlign: 'center', marginBottom: 32, fontSize: '1.5rem' }}>
+      <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 10, animation: 'auth-card-in 0.6s cubic-bezier(0.2,0.8,0.2,1) both', marginTop: '-10vh' }}>
+        <Link href="/" className="navbar-logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 32, fontSize: '1.5rem', textDecoration: 'none' }}>
+          <img src="/InicioSesionColor.png" alt="EuroProxy" style={{ width: 96, height: 96, marginBottom: 4, objectFit: 'contain' }} />
           EuroProxy
         </Link>
 

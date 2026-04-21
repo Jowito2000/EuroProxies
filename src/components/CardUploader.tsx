@@ -7,11 +7,21 @@ import { validateImageFile } from '@/lib/validators'
 import { Card, TCGGame } from '@/types/card'
 import { useFileStore } from '@/lib/fileStore'
 
+const TCG_DIMENSIONS: Record<string, string> = {
+  mtg: '63×88 mm',
+  pokemon: '63×88 mm',
+  yugioh: '59×86 mm',
+  lorcana: '63×88 mm',
+  onepiece: '63×88 mm',
+  custom: 'variable',
+}
+
 interface UploadedCard {
   file: File
   previewUrl: string
   card: Card
   errors: string[]
+  warnings: string[]
   validating: boolean
 }
 
@@ -39,6 +49,7 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
       previewUrl,
       card: { id, imageUrl: previewUrl, game: 'mtg', quantity: 1, finish: 'normal', dpiValid: false },
       errors: [],
+      warnings: [],
       validating: true,
     }
 
@@ -53,6 +64,7 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
               ...item,
               validating: false,
               errors: result.errors,
+              warnings: result.warnings,
               card: { ...item.card, dpiValid: result.valid, width: result.width, height: result.height },
             }
           : item
@@ -85,7 +97,7 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
     })
   }
 
-  const validCards = items.filter(i => i.card.dpiValid && !i.validating)
+  const validCards = items.filter(i => i.errors.length === 0 && !i.validating)
 
   const handleAddToCart = () => {
     onCardsReady(validCards.map(i => i.card))
@@ -124,7 +136,7 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
       {items.length > 0 && (
         <div className="space-y-3">
           {items.map(item => (
-            <CardItem key={item.card.id} item={item} onUpdate={updateItem} onRemove={removeItem} />
+            <CardItem key={item.card.id} item={item} tcgDimensions={TCG_DIMENSIONS} onUpdate={updateItem} onRemove={removeItem} />
           ))}
         </div>
       )}
@@ -146,15 +158,17 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
 
 function CardItem({
   item,
+  tcgDimensions,
   onUpdate,
   onRemove,
 }: {
   item: UploadedCard
+  tcgDimensions: Record<string, string>
   onUpdate: (id: string, patch: Partial<Card>) => void
   onRemove: (id: string) => void
 }) {
-  const { card, errors, validating, previewUrl } = item
-  const isOk = card.dpiValid && !validating
+  const { card, errors, warnings, validating, previewUrl } = item
+  const isOk = errors.length === 0 && !validating
 
   return (
     <div
@@ -191,6 +205,12 @@ function CardItem({
           </ul>
         )}
 
+        {warnings.length > 0 && (
+          <ul className="text-xs mb-2 space-y-1" style={{ color: '#f59e0b' }}>
+            {warnings.map((w, i) => <li key={i}>⚡ {w}</li>)}
+          </ul>
+        )}
+
         {isOk && (
           <div className="flex flex-wrap gap-2 items-center">
             <select
@@ -205,6 +225,10 @@ function CardItem({
               <option value="onepiece">One Piece</option>
               <option value="custom">Custom</option>
             </select>
+
+            <span className="text-xs px-2 py-1 rounded-md" style={{ color: 'var(--color-text-muted)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              {tcgDimensions[card.game] ?? '63×88 mm'}
+            </span>
 
             <div className="flex items-center gap-1">
               <button

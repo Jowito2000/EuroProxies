@@ -1,8 +1,8 @@
 export const PRICE_TIERS = [
-  { min: 1, max: 9, price: 1.2 },
-  { min: 10, max: 49, price: 1.0 },
-  { min: 50, max: 199, price: 0.85 },
-  { min: 200, max: Infinity, price: 0.70 },
+  { min: 1, max: 9, price: 1.50 },
+  { min: 10, max: 49, price: 1.25 },
+  { min: 50, max: 199, price: 1.00 },
+  { min: 200, max: Infinity, price: 0.85 },
 ]
 
 export const FOIL_SURCHARGE = 0.30

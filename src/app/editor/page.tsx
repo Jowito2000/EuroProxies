@@ -20,9 +20,12 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <div className="max-w-6xl mx-auto px-4 py-12" style={{ position: 'relative' }}>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05] select-none flex items-center justify-center -z-10">
+        <img src="/favicon.png" alt="" className="max-w-3xl w-full object-contain" />
+      </div>
       {/* Header */}
-      <div className="mb-10">
+      <div className="mb-10 relative z-10">
         <div className="section-tag mb-3">Editor de cartas</div>
         <h1 className="section-title">Sube y configura tus proxies</h1>
         <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -58,9 +61,15 @@ export default function EditorPage() {
               📋 Requisitos de imagen
             </p>
             <p style={{ color: 'var(--color-text-muted)' }}>• Formatos: JPG, PNG, WEBP</p>
-            <p style={{ color: 'var(--color-text-muted)' }}>• Resolución mínima: 744 px por lado</p>
             <p style={{ color: 'var(--color-text-muted)' }}>• Tamaño máximo: 10 MB</p>
-            <p style={{ color: 'var(--color-text-muted)' }}>• Tamaño carta: 63 × 88 mm</p>
+            <p style={{ color: '#f59e0b' }}>• Resolución recomendada: ≥744 px por lado</p>
+            <div className="pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>Medidas de carta</p>
+              <p style={{ color: 'var(--color-text-muted)' }}>MTG / Pokémon / Lorcana / One Piece</p>
+              <p style={{ color: '#fff' }}>63 × 88 mm</p>
+              <p className="mt-1" style={{ color: 'var(--color-text-muted)' }}>Yu-Gi-Oh!</p>
+              <p style={{ color: '#fff' }}>59 × 86 mm</p>
+            </div>
           </div>
 
           <div

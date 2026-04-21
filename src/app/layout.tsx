@@ -7,6 +7,11 @@ import AuthProvider from '@/components/AuthProvider'
 export const metadata: Metadata = {
   title: 'EuroProxy – Proxies TCG de calidad',
   description: 'Imprime proxies de cartas TCG (MTG, Pokémon, Yu-Gi-Oh, Lorcana) y recíbelas en casa. Uso casual y testing de decks.',
+  icons: {
+    icon: '/iconSimply.png',
+    shortcut: '/iconSimply.png',
+    apple: '/iconSimply.png',
+  },
   openGraph: {
     title: 'EuroProxy – Proxies TCG de calidad',
     description: 'Proxies para testing de decks. No válidas para torneos oficiales.',

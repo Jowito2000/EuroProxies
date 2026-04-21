@@ -1,8 +1,9 @@
-import { ALLOWED_FORMATS, MAX_FILE_SIZE_BYTES, MIN_RESOLUTION_PX, CARD_ASPECT_RATIO, CARD_ASPECT_RATIO_TOLERANCE } from '@/utils/constants'
+import { ALLOWED_FORMATS, MAX_FILE_SIZE_BYTES, MIN_RESOLUTION_PX } from '@/utils/constants'
 
 export interface ValidationResult {
   valid: boolean
   errors: string[]
+  warnings: string[]
   width?: number
   height?: number
 }
@@ -10,6 +11,7 @@ export interface ValidationResult {
 export function validateImageFile(file: File): Promise<ValidationResult> {
   return new Promise(resolve => {
     const errors: string[] = []
+    const warnings: string[] = []
 
     if (!ALLOWED_FORMATS.includes(file.type)) {
       errors.push(`Formato no soportado. Usa JPG, PNG o WEBP.`)
@@ -20,7 +22,7 @@ export function validateImageFile(file: File): Promise<ValidationResult> {
     }
 
     if (errors.length > 0) {
-      return resolve({ valid: false, errors })
+      return resolve({ valid: false, errors, warnings })
     }
 
     const img = new Image()
@@ -31,25 +33,15 @@ export function validateImageFile(file: File): Promise<ValidationResult> {
       const { naturalWidth: w, naturalHeight: h } = img
 
       if (w < MIN_RESOLUTION_PX || h < MIN_RESOLUTION_PX) {
-        errors.push(`Resolución muy baja (${w}×${h}px). Mínimo recomendado: ${MIN_RESOLUTION_PX}px por lado.`)
+        warnings.push(`Resolución baja (${w}×${h}px). Recomendado ≥${MIN_RESOLUTION_PX}px por lado (~300 DPI) para mejor calidad de impresión.`)
       }
 
-      const ratio = w / h
-      const deviation = Math.abs(ratio - CARD_ASPECT_RATIO) / CARD_ASPECT_RATIO
-      if (deviation > CARD_ASPECT_RATIO_TOLERANCE) {
-        const orientation = ratio > 1 ? 'apaisada' : 'demasiado cuadrada o alta'
-        errors.push(
-          `La imagen no tiene proporciones de carta TCG (${w}×${h}px, ratio ${ratio.toFixed(2)}). ` +
-          `Se esperaba ~0.72 (63×88mm). La imagen parece ${orientation}.`
-        )
-      }
-
-      resolve({ valid: errors.length === 0, errors, width: w, height: h })
+      resolve({ valid: true, errors, warnings, width: w, height: h })
     }
 
     img.onerror = () => {
       URL.revokeObjectURL(url)
-      resolve({ valid: false, errors: ['No se pudo leer la imagen.'] })
+      resolve({ valid: false, errors: ['No se pudo leer la imagen.'], warnings })
     }
 
     img.src = url

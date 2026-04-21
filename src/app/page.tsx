@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { PRICE_TIERS, getPricePerCard } from '@/lib/pricing'
+import { useAuth } from '@/components/AuthProvider'
 
 const SUPPORTED_GAMES = [
   { abbr: 'MTG', name: 'Magic: The Gathering', symbol: '✦', format: '63×88 mm', logo: '/images/TCGs/Magic.png', logoScale: 'scale-100',
@@ -70,16 +71,16 @@ const CARD_POSITIONS = [
 ]
 
 const SHIPPING = [
-  { flag: '🇪🇸', zone: 'España',        price: '3 €',  days: '2–4 días hábiles' },
-  { flag: '🇪🇺', zone: 'Europa',        price: '6 €',  days: '4–8 días hábiles' },
-  { flag: '🌍',  zone: 'Internacional', price: '10 €', days: '7–14 días hábiles' },
+  { flag: '/icons/España.png', zone: 'España',        price: 'hasta 4,99 €',  days: '2–4 días hábiles' },
+  { flag: '/icons/Europe.png', zone: 'Europa',        price: 'hasta 11,99 €', days: '4–8 días hábiles' },
+  { flag: '/icons/Mundo.png',  zone: 'Internacional', price: 'hasta 15,99 €', days: '7–14 días hábiles' },
 ]
 
 const CONTACT_IDEAS = [
-  { icon: '🃏', label: 'Proponer un nuevo TCG',      subject: 'Nuevo TCG' },
-  { icon: '⚙️', label: 'Sugerir una función',        subject: 'Sugerencia de función' },
-  { icon: '📦', label: 'Pedido especial / mayorista', subject: 'Pedido especial' },
-  { icon: '🤝', label: 'Colaboración o partenariado', subject: 'Colaboración' },
+  { icon: '/icons/customTCG.png',      label: 'Proponer un nuevo TCG',      subject: 'Nuevo TCG' },
+  { icon: '/icons/NuevaFuncion.png',   label: 'Sugerir una función',        subject: 'Sugerencia de función' },
+  { icon: '/icons/NuevoPedido.png',    label: 'Pedido especial / mayorista', subject: 'Pedido especial' },
+  { icon: '/icons/Colaboracion.png',   label: 'Colaboración o partenariado', subject: 'Colaboración' },
 ]
 
 const STEPS = [
@@ -217,6 +218,9 @@ export default function HomePage() {
         <div className="ep-hero-noise" />
         <div className="ep-hero-glow ep-hero-glow-1" />
         <div className="ep-hero-glow ep-hero-glow-2" />
+        <div className="ep-hero-watermark" aria-hidden="true" style={{ transform: 'scale(0.8)' }}>
+          <img src="/favicon.png" alt="" />
+        </div>
 
         <div className="ep-hero-inner">
           {/* Left column — content */}
@@ -254,7 +258,7 @@ export default function HomePage() {
               </div>
               <div className="ep-hero-meta-sep" />
               <div className="ep-hero-meta-item">
-                <strong>0,70 €</strong>
+                <strong>0,85 €</strong>
                 <span>desde / carta</span>
               </div>
               <div className="ep-hero-meta-sep" />
@@ -318,7 +322,10 @@ export default function HomePage() {
       </section>
 
       {/* ─── SUPPORTED GAMES — bento grid ─── */}
-      <section className="ep-games section-padding">
+      <section className="ep-games section-padding" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div className="absolute inset-0 pointer-events-none opacity-[0.05] select-none flex items-center justify-center z-0">
+          <img src="/favicon.png" alt="" className="max-w-2xl w-full object-contain" />
+        </div>
         <div className="max-w-6xl mx-auto px-4">
           <div className="ep-section-header">
             <h2 className="ep-section-title">
@@ -412,7 +419,9 @@ export default function HomePage() {
 
           <div className="ep-ship-section">
             <div className="ep-ship-heading">
-              <span className="ep-ship-heading-icon">📦</span>
+              <span className="ep-ship-heading-icon" style={{ background: 'transparent', padding: 0 }}>
+                <img src="/icons/Paquete.png" alt="Paquete" style={{ width: 42, height: 42, objectFit: 'contain' }} />
+              </span>
               <div>
                 <div className="ep-ship-heading-title">Costes de envío</div>
                 <div className="ep-ship-heading-sub">Salimos desde España · Tracking incluido en todos los envíos</div>
@@ -422,11 +431,15 @@ export default function HomePage() {
               {SHIPPING.map(s => (
                 <div key={s.zone} className="ep-ship-card">
                   <div className="ep-ship-card-route">
-                    <span className="ep-ship-card-origin">🇪🇸</span>
+                    <span className="ep-ship-card-origin" style={{ display: 'flex', alignItems: 'center' }}>
+                      <img src="/icons/España.png" alt="ES" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                    </span>
                     <span className="ep-ship-card-line" aria-hidden>
                       <span /><span /><span />
                     </span>
-                    <span className="ep-ship-card-dest">{s.flag}</span>
+                    <span className="ep-ship-card-dest" style={{ display: 'flex', alignItems: 'center' }}>
+                      <img src={s.flag} alt={s.zone} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                    </span>
                   </div>
                   <div className="ep-ship-card-zone">{s.zone}</div>
                   <div className="ep-ship-card-price">{s.price}</div>
@@ -442,7 +455,10 @@ export default function HomePage() {
       </section>
 
       {/* ─── HOW IT WORKS ─── */}
-      <section id="como-funciona" className="section-padding">
+      <section id="como-funciona" className="section-padding" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div className="absolute inset-0 pointer-events-none opacity-[0.04] select-none flex items-center justify-center z-0">
+          <img src="/favicon.png" alt="" className="max-w-sm w-full object-contain" />
+        </div>
         <div className="max-w-5xl mx-auto px-4">
           <div className="ep-section-header">
             <h2 className="ep-section-title">
@@ -470,34 +486,61 @@ export default function HomePage() {
       <PriceCalc />
 
       {/* ─── CREAR CARTAS / PROXIES ─── */}
-      <section className="section-padding relative">
-        <div className="max-w-5xl mx-auto px-4 text-center relative z-10 group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-          <div className="bg-[#0b0b0e] border border-white/10 rounded-[2.5rem] p-12 md:p-16 relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 p-8 opacity-5 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 group-hover:opacity-10 transition-all duration-700">
-              <span className="text-[12rem]">🎨</span>
-            </div>
-            <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight text-white">
-                ¿Aún no tienes tus <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-orange-400 animate-gradient">cartas listas</span>?
-              </h2>
-              <p className="text-lg text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Descubre el gran arsenal de web apps con las mejores plantillas. Perfectas para diseñar <strong>Fakemon</strong>, importar <strong>Alt Arts</strong> o maquetar <strong>Proxies</strong> profesionales para imprimir.
-              </p>
-              <Link href="/crear-cartas" className="cta-primary inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-all">
-                Ver herramientas de creación <span className="cta-arrow">→</span>
-              </Link>
-            </div>
+      <section className="section-padding" style={{ position: 'relative' }}>
+        <div className="absolute inset-0 pointer-events-none opacity-[0.05] select-none flex items-center justify-center z-0">
+          <img src="/favicon.png" alt="" className="max-w-2xl w-full object-contain" />
+        </div>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="ep-section-header">
+            <h2 className="ep-section-title">
+              ¿Aún no tienes tus <span className="gradient-text">cartas listas?</span>
+            </h2>
+            <p className="ep-section-lead">
+              Diseña desde cero, importa Arte Alternativo o trabaja con plantillas profesionales. La comunidad TCG tiene un arsenal de herramientas esperándote.
+            </p>
+          </div>
+
+          <div className="flex justify-center items-center gap-4 sm:gap-6 mb-12 flex-wrap">
+            {[
+              { src: '/images/TCGs/MTGIcon.png',      label: 'MTG', scale: '' },
+              { src: '/images/TCGs/PokemonIcon.png',  label: 'Pokémon', scale: '' },
+              { src: '/images/TCGs/YuGiOhIcon.png',   label: 'Yu-Gi-Oh!', scale: '' },
+              { src: '/images/TCGs/LorcanaIcon.png',  label: 'Lorcana', scale: '' },
+              { src: '/images/TCGs/StarWarsUnlimited.png', label: 'Star Wars' },
+            ].map(tcg => (
+              <div key={tcg.label} className="flex flex-col items-center gap-2 group/icon">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center p-3 transition-all duration-300 group-hover/icon:scale-110"
+                  style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}
+                >
+                  <img src={tcg.src} alt={tcg.label} className={`w-full h-full object-contain opacity-70 group-hover/icon:opacity-100 transition-opacity ${tcg.scale || ''} origin-center`} />
+                </div>
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{tcg.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link href="/crear-cartas" className="cta-primary inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-all">
+              Ver herramientas de creación <span className="cta-arrow">→</span>
+            </Link>
           </div>
         </div>
       </section>
+
+      <div className="w-full flex justify-center items-center py-16 relative z-10">
+        <div className="h-px w-full max-w-md bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-purple-500/30 bg-[#060612] flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(167,139,250,0.8)]" />
+        </div>
+      </div>
 
       {/* ─── CONTACT ─── */}
       <section className="ep-contact section-padding section-alt">
         <div className="max-w-5xl mx-auto px-4">
           <div className="ep-contact-inner">
             <div className="ep-contact-content">
-              <p className="ep-contact-eyebrow">Comunidad</p>
+
               <h2 className="ep-contact-title">
                 ¿Tienes una <span className="gradient-text">idea nueva?</span>
               </h2>
@@ -513,7 +556,7 @@ export default function HomePage() {
                     onClick={() => setContactModalSubject(idea.subject)}
                     className="ep-contact-idea w-full text-left bg-transparent border-none cursor-pointer"
                   >
-                    <span className="ep-contact-idea-icon">{idea.icon}</span>
+                    <img src={idea.icon} alt="" className="ep-contact-idea-icon" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
                     <span>{idea.label}</span>
                     <span className="ep-contact-idea-arrow">→</span>
                   </button>
@@ -546,7 +589,10 @@ export default function HomePage() {
       </section>
 
       {/* ─── CTA ─── */}
-      <section className="ep-cta">
+      <section className="ep-cta" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div className="absolute inset-0 pointer-events-none opacity-[0.06] select-none flex items-center justify-center z-0 mix-blend-screen">
+          <img src="/favicon.png" alt="" className="max-w-lg w-full object-contain" />
+        </div>
         <div className="ep-cta-bg" />
         <div className="ep-cta-grid" />
         <div className="ep-cta-glow" />
@@ -575,17 +621,19 @@ function ContactModal({ isOpen, onClose, initialSubject }: { isOpen: boolean, on
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const { user, loading: authLoading } = useAuth();
   
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     setLoading(true);
     setError('');
     
     const formData = new FormData(e.currentTarget);
     const data = {
-      email: formData.get('email'),
+      email: user.email,
       subject: formData.get('subject'),
       message: formData.get('message'),
     };
@@ -624,7 +672,18 @@ function ContactModal({ isOpen, onClose, initialSubject }: { isOpen: boolean, on
           <p className="text-gray-400">¿Tienes dudas, ideas, o un pedido especial? Te responderemos a tu correo en menos de 24 horas.</p>
         </div>
 
-        {success ? (
+        {authLoading ? (
+          <div className="text-center py-8 text-gray-400">Comprobando sesión...</div>
+        ) : !user ? (
+           <div className="bg-purple-500/10 border border-purple-500/20 p-6 rounded-2xl flex flex-col items-center justify-center text-center">
+             <img src="/InicioSesionColor.png" alt="Inicia sesión" className="w-16 h-16 mb-4 object-contain" />
+             <p className="font-semibold text-lg text-white mb-2">Inicia sesión para escribirnos</p>
+             <p className="text-sm text-gray-400 mb-6">Necesitas estar registrado para enviarnos mensajes de contacto.</p>
+             <Link href="/login" onClick={onClose} className="cta-primary w-full max-w-xs font-bold py-3 rounded-xl flex items-center justify-center">
+               Ir a iniciar sesión
+             </Link>
+           </div>
+        ) : success ? (
            <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-6 rounded-2xl flex flex-col items-center justify-center text-center">
              <span className="text-4xl mb-4">✨</span>
              <p className="font-semibold text-lg">¡Mensaje enviado!</p>
@@ -633,11 +692,6 @@ function ContactModal({ isOpen, onClose, initialSubject }: { isOpen: boolean, on
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && <div className="text-red-400 bg-red-400/10 border border-red-400/20 p-3 rounded-lg text-sm">{error}</div>}
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5" htmlFor="email">Tu Correo Electrónico</label>
-              <input required type="email" id="email" name="email" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all" placeholder="tucorreo@ejemplo.com" />
-            </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5" htmlFor="subject">Asunto</label>

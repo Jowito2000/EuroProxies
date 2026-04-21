@@ -172,6 +172,7 @@ body {
   top: 0;
   z-index: 100;
   transition: background 0.3s;
+  overflow: hidden;
 }
 .navbar-logo {
   font-size: 1.4rem;
@@ -186,6 +187,52 @@ body {
 }
 .navbar-logo:hover {
   filter: drop-shadow(0 0 8px rgba(124,58,237,0.7));
+}
+
+/* Navbar watermark icon — top-left, giant, rotated */
+.navbar-watermark {
+  position: absolute;
+  top: -40px;
+  left: -4px;
+  pointer-events: none;
+  z-index: 0;
+}
+.navbar-watermark img {
+  height: 480px;
+  width: auto;
+  opacity: 0.13;
+  transform: rotate(-14deg);
+  transform-origin: top left;
+}
+
+/* Generic section watermark — reusable across pages */
+.section-wm {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.section-wm img         { width: min(55vw, 480px); height: auto; opacity: 0.05; }
+.section-wm.sm img      { width: min(30vw, 240px); }
+
+/* Hero watermark icon — centered, behind content */
+.ep-hero-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+}
+.ep-hero-watermark img {
+  width: min(90vw, 900px);
+  height: auto;
+  opacity: 0.07;
 }
 .navbar-link {
   color: var(--color-text-muted);

@@ -1,9 +1,9 @@
 export type ShippingZone = 'spain' | 'eu' | 'international'
 
 export const SHIPPING_RATES: Record<ShippingZone, number> = {
-  spain: 3.0,
-  eu: 6.0,
-  international: 10.0,
+  spain: 4.99,
+  eu: 11.99,
+  international: 15.99,
 }
 
 const EU_COUNTRIES = [
