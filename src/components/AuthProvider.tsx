@@ -16,19 +16,18 @@ export function useAuth() {
   return useContext(AuthContext)
 }
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function AuthProvider({ children, initialUser = null }: { children: React.ReactNode, initialUser?: User | null }) {
+  const [user, setUser] = useState<User | null>(initialUser)
+  const [loading, setLoading] = useState(false)
   const { cards, loadFromSupabase, saveToSupabase, clearCart } = useCartStore()
 
   useEffect(() => {
-    const supabase = createClient()
+    setUser(initialUser)
+    if (initialUser) loadFromSupabase(initialUser.id)
+  }, [initialUser, loadFromSupabase])
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-      if (user) loadFromSupabase(user.id)
-      setLoading(false)
-    })
+  useEffect(() => {
+    const supabase = createClient()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const nextUser = session?.user ?? null

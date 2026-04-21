@@ -104,6 +104,7 @@ function LoginForm() {
                 <input
                   id="email" name="email" type="email" required
                   autoComplete="email" placeholder="tu@email.com"
+                  defaultValue={state?.email || ''}
                   className="input-field"
                 />
               </div>

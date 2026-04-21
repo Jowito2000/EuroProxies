@@ -20,39 +20,45 @@ function friendlyError(message: string): string {
   return message
 }
 
-type LoginState = { error: string } | undefined
+type LoginState = { error: string, email?: string } | undefined
 type SignupState = { error: string } | { sent: true } | undefined
 
 export async function login(prevState: LoginState, formData: FormData): Promise<LoginState> {
   const supabase = await createClient()
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
 
   const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+    email,
+    password,
   })
 
-  if (error) return { error: friendlyError(error.message) }
+  if (error) return { error: friendlyError(error.message), email }
 
   const next = formData.get('next') as string | null
   redirect(next || '/')
 }
 
+type SignupState = { error: string, email?: string } | { sent: true } | undefined
+
 export async function signup(prevState: SignupState, formData: FormData): Promise<SignupState> {
   const supabase = await createClient()
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
 
   const { data, error } = await supabase.auth.signUp({
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+    email,
+    password,
     options: {
       emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`,
     },
   })
 
-  if (error) return { error: friendlyError(error.message) }
+  if (error) return { error: friendlyError(error.message), email }
 
   // Cuando el email ya existe Supabase devuelve éxito pero identities viene vacío
   if (data.user && data.user.identities?.length === 0) {
-    return { error: 'Ya existe una cuenta con ese email. ¿Quieres iniciar sesión?' }
+    return { error: 'Ya existe una cuenta con ese email. ¿Quieres iniciar sesión?', email }
   }
 
   return { sent: true }

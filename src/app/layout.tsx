@@ -3,6 +3,7 @@ import './globals.css'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import AuthProvider from '@/components/AuthProvider'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: 'EuroProxy – Proxies TCG de calidad',
@@ -19,11 +20,20 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  let initialUser = null;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    initialUser = user;
+  } catch (e) {
+    // Ignore errors in case of missing env vars during build
+  }
+
   return (
     <html lang="es" className="h-full">
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
+        <AuthProvider initialUser={initialUser}>
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />

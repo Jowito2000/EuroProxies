@@ -52,7 +52,7 @@ export default function SignupPage() {
             <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label htmlFor="email" style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Email</label>
-                <input id="email" name="email" type="email" required autoComplete="email" placeholder="tu@email.com" className="input-field" />
+                <input id="email" name="email" type="email" required autoComplete="email" placeholder="tu@email.com" defaultValue={'email' in (state ?? {}) ? (state as { email?: string }).email || '' : ''} className="input-field" />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
