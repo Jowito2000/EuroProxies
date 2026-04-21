@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/lib/cartStore'
 import PriceCalculator from '@/components/PriceCalculator'
@@ -17,9 +17,19 @@ export default function CheckoutPage() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [mounted, setMounted] = useState(false)
 
-  if (cards.length === 0) {
-    router.replace('/cart')
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && cards.length === 0) {
+      router.replace('/cart')
+    }
+  }, [mounted, cards.length, router])
+
+  if (!mounted || cards.length === 0) {
     return null
   }
 
