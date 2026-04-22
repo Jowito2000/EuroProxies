@@ -74,7 +74,7 @@ export default function CheckoutPage() {
       
       // 2. Convert to Base64
       const base64 = await new Promise<string>((resolve) => {
-        const blob = new Blob([pdfBytes])
+        const blob = new Blob([new Uint8Array(pdfBytes.buffer.slice(0))])
         const reader = new FileReader()
         reader.onloadend = () => {
           const b64 = (reader.result as string).split(',')[1]
