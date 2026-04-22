@@ -21,7 +21,6 @@ function friendlyError(message: string): string {
 }
 
 type LoginState = { error: string, email?: string } | undefined
-type SignupState = { error: string } | { sent: true } | undefined
 
 export async function login(prevState: LoginState, formData: FormData): Promise<LoginState> {
   const supabase = await createClient()
