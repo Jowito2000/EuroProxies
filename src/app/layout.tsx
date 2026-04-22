@@ -31,7 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="es" className="h-full">
+    <html lang="es" className="h-full" data-scroll-behavior="smooth">
       <body className="min-h-full flex flex-col">
         <AuthProvider initialUser={initialUser}>
           <Navbar />

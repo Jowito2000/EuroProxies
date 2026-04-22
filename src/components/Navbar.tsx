@@ -36,7 +36,7 @@ export default function Navbar() {
             )}
           </Link>
 
-          {mounted && user ? (
+          {user ? (
             <div className="flex items-center gap-4 ml-2 pl-4 border-l border-white/10">
               <Link href="/orders" className="navbar-link">
                 Mis pedidos
@@ -49,12 +49,10 @@ export default function Navbar() {
               </form>
             </div>
           ) : (
-            mounted && (
-              <Link href="/login" className="navbar-link flex items-center gap-2 ml-2 pl-4 border-l border-white/10" style={{ color: 'var(--color-primary)' }}>
-                <img src="/icons/Login.svg" alt="" className="w-5 h-5" />
-                Iniciar sesión
-              </Link>
-            )
+            <Link href="/login" className="navbar-link flex items-center gap-2 ml-2 pl-4 border-l border-white/10" style={{ color: 'var(--color-primary)' }}>
+              <img src="/icons/Login.svg" alt="" className="w-5 h-5" />
+              Iniciar sesión
+            </Link>
           )}
         </div>
       </nav>

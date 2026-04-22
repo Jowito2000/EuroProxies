@@ -6,21 +6,39 @@ import { Card } from '@/types/card'
 import { calculatePrice, getPricePerCard } from './pricing'
 import { calculateShipping } from '@/services/shipping'
 import { createClient } from '@/lib/supabase/browser'
+import { idbDelete, idbDeleteMany } from './imageDB'
+
+export interface ShippingDetails {
+  fullName: string
+  phonePrefix: string
+  phone: string
+  address: string
+  number: string
+  floor: string
+  door: string
+  city: string
+  province: string
+}
 
 interface CartState {
   cards: Card[]
   shippingCountry: string
+  shippingDetails: ShippingDetails
   addCard: (card: Card) => void
   removeCard: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
+  updateImageUrl: (id: string, url: string) => void
   clearCart: () => void
   setShippingCountry: (country: string) => void
+  updateShippingDetails: (details: Partial<ShippingDetails>) => void
   totalCards: () => number
   subtotal: () => number
   shippingCost: () => number
   total: () => number
   loadFromSupabase: (userId: string) => Promise<void>
   saveToSupabase: (userId: string, cards: Card[]) => Promise<void>
+  isGeneratingPDF: boolean
+  setIsGeneratingPDF: (val: boolean) => void
 }
 
 export const useCartStore = create<CartState>()(
@@ -28,23 +46,38 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       cards: [],
       shippingCountry: 'ES',
+      shippingDetails: { fullName: '', phonePrefix: '+34', phone: '', address: '', number: '', floor: '', door: '', city: '', province: '' },
+      isGeneratingPDF: false,
+      setIsGeneratingPDF: (val) => set({ isGeneratingPDF: val }),
 
       addCard: (card) => set(state => {
         if (state.cards.some(c => c.id === card.id)) return state
         return { cards: [...state.cards, card] }
       }),
 
-      removeCard: (id) => set(state => ({
-        cards: state.cards.filter(c => c.id !== id),
-      })),
+      removeCard: (id) => {
+        idbDelete(id).catch(console.error)
+        set(state => ({ cards: state.cards.filter(c => c.id !== id) }))
+      },
 
       updateQuantity: (id, quantity) => set(state => ({
         cards: state.cards.map(c => c.id === id ? { ...c, quantity } : c),
       })),
 
-      clearCart: () => set({ cards: [] }),
+      updateImageUrl: (id, url) => set(state => ({
+        cards: state.cards.map(c => c.id === id ? { ...c, imageUrl: url } : c),
+      })),
+
+      clearCart: () => {
+        idbDeleteMany(get().cards.map(c => c.id)).catch(console.error)
+        set({ cards: [] })
+      },
 
       setShippingCountry: (country) => set({ shippingCountry: country }),
+      
+      updateShippingDetails: (details) => set(state => ({
+        shippingDetails: { ...state.shippingDetails, ...details }
+      })),
 
       totalCards: () => get().cards.reduce((sum, c) => sum + c.quantity, 0),
 
@@ -91,6 +124,13 @@ export const useCartStore = create<CartState>()(
         )
       },
     }),
-    { name: 'proxyforge-cart' }
+    { 
+      name: 'proxyforge-cart',
+      partialize: (state) => ({ 
+        cards: state.cards, 
+        shippingCountry: state.shippingCountry,
+        shippingDetails: state.shippingDetails
+      }),
+    }
   )
 )

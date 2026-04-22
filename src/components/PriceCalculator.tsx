@@ -1,14 +1,24 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useCartStore } from '@/lib/cartStore'
 import { getPricePerCard, PRICE_TIERS } from '@/lib/pricing'
 
 export default function PriceCalculator() {
+  const [hasHydrated, setHasHydrated] = useState(false)
   const totalCards = useCartStore(s => s.totalCards())
   const subtotal = useCartStore(s => s.subtotal())
   const shippingCost = useCartStore(s => s.shippingCost())
   const total = useCartStore(s => s.total())
   const pricePerCard = getPricePerCard(totalCards)
+
+  useEffect(() => {
+    setHasHydrated(true)
+  }, [])
+
+  if (!hasHydrated) {
+    return <div className="price-panel animate-pulse bg-surface-2" style={{ height: 200, borderRadius: 16 }}></div>
+  }
 
   if (totalCards === 0) return null
 

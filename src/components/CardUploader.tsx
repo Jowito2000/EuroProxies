@@ -36,6 +36,8 @@ function genId() {
 
 export default function CardUploader({ onCardsReady }: CardUploaderProps) {
   const [items, setItems] = useState<UploadedCard[]>([])
+  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
   const addFile = useFileStore(s => s.addFile)
 
   const processFile = useCallback(async (file: File) => {
@@ -70,7 +72,7 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
           : item
       )
     )
-  }, [])
+  }, [addFile])
 
   const onDrop = useCallback((accepted: File[]) => {
     accepted.forEach(processFile)
@@ -101,7 +103,6 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
 
   const handleAddToCart = () => {
     onCardsReady(validCards.map(i => i.card))
-    // Clear the uploader — DO NOT revoke blob URLs here; the cart still needs them to display images
     setItems([])
   }
 
@@ -135,13 +136,62 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
       {/* Card list */}
       {items.length > 0 && (
         <div className="space-y-3">
+          {/* Sticky quick-add bar — always reachable without scrolling */}
+          {validCards.length > 0 && (
+            <div
+              className="flex items-center justify-between rounded-xl px-4 py-3"
+              style={{
+                position: 'sticky',
+                top: '72px',
+                zIndex: 20,
+                background: 'rgba(15,10,30,0.85)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(124,58,237,0.3)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+              }}
+            >
+              <span className="text-sm font-semibold" style={{ color: '#c4b5fd' }}>
+                {validCards.length} carta{validCards.length !== 1 ? 's' : ''} listas
+              </span>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setShowClearConfirm(true)}
+                  className="group flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:bg-red-500/15 hover:-translate-y-0.5"
+                  style={{ 
+                    color: 'var(--color-danger)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.0)'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.2)'}
+                  onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.0)'}
+                >
+                  <svg className="w-4 h-4 transition-transform group-hover:rotate-12 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Vaciar
+                </button>
+                <button onClick={handleAddToCart} className="btn-primary px-5 py-2 text-sm font-bold">
+                  Añadir al carrito →
+                </button>
+              </div>
+            </div>
+          )}
+
           {items.map(item => (
-            <CardItem key={item.card.id} item={item} tcgDimensions={TCG_DIMENSIONS} onUpdate={updateItem} onRemove={removeItem} />
+            <CardItem
+              key={item.card.id}
+              item={item}
+              tcgDimensions={TCG_DIMENSIONS}
+              onUpdate={updateItem}
+              onRemove={removeItem}
+              onPreviewClick={(url, name) => setLightbox({ url, name })}
+            />
           ))}
         </div>
       )}
 
-      {/* Add to cart */}
+      {/* Add to cart — bottom anchor */}
       {validCards.length > 0 && (
         <div className="flex justify-end">
           <button
@@ -150,6 +200,110 @@ export default function CardUploader({ onCardsReady }: CardUploaderProps) {
           >
             Añadir {validCards.length} carta{validCards.length !== 1 ? 's' : ''} al carrito
           </button>
+        </div>
+      )}
+
+      {/* Clear Confirm Modal */}
+      {showClearConfirm && (
+        <div
+          onClick={() => setShowClearConfirm(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+            backdropFilter: 'blur(6px)',
+            animation: 'fadeIn 0.18s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="p-6 rounded-2xl border text-center relative overflow-hidden"
+            style={{
+              background: 'var(--color-surface)',
+              borderColor: 'rgba(239, 68, 68, 0.3)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(239, 68, 68, 0.15)',
+              animation: 'panel-card-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+              maxWidth: '360px',
+              width: '100%',
+            }}
+          >
+            {/* Background glow */}
+            <div style={{ position: 'absolute', top: '-50px', left: '50%', transform: 'translateX(-50%)', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(239,68,68,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 relative z-10" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444' }}>
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 relative z-10">¿Vaciar subida?</h3>
+            <p className="text-sm mb-7 relative z-10" style={{ color: 'var(--color-text-muted)' }}>
+              Se eliminarán todas las imágenes que has subido. Tendrás que volver a seleccionarlas.
+            </p>
+            <div className="flex gap-3 relative z-10">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 py-3 rounded-xl font-bold transition-all hover:bg-white/10"
+                style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setItems([])
+                  setShowClearConfirm(false)
+                }}
+                className="flex-1 py-3 rounded-xl font-bold transition-all hover:-translate-y-0.5"
+                style={{ background: '#ef4444', color: '#fff', boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)', border: '1px solid rgba(255,100,100,0.5)' }}
+              >
+                Sí, vaciar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+            backdropFilter: 'blur(6px)',
+            animation: 'fadeIn 0.18s ease',
+          }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '340px', width: '100%' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightbox.url}
+              alt={lightbox.name}
+              style={{
+                width: '100%',
+                borderRadius: '12px',
+                boxShadow: '0 0 60px rgba(124,58,237,0.4)',
+                display: 'block',
+              }}
+            />
+            <button
+              onClick={() => setLightbox(null)}
+              style={{
+                position: 'absolute', top: '-14px', right: '-14px',
+                width: '32px', height: '32px',
+                borderRadius: '50%',
+                background: 'rgba(30,20,50,0.95)',
+                border: '1px solid rgba(124,58,237,0.4)',
+                color: '#fff',
+                fontSize: '1rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+              aria-label="Cerrar"
+            >✕</button>
+          </div>
         </div>
       )}
     </div>
@@ -161,13 +315,15 @@ function CardItem({
   tcgDimensions,
   onUpdate,
   onRemove,
+  onPreviewClick,
 }: {
   item: UploadedCard
   tcgDimensions: Record<string, string>
   onUpdate: (id: string, patch: Partial<Card>) => void
   onRemove: (id: string) => void
+  onPreviewClick: (url: string, name: string) => void
 }) {
-  const { card, errors, warnings, validating, previewUrl } = item
+  const { card, errors, warnings, validating, previewUrl, file } = item
   const isOk = errors.length === 0 && !validating
 
   return (
@@ -181,8 +337,9 @@ function CardItem({
     >
       {/* Preview */}
       <div
-        className="shrink-0 rounded-lg overflow-hidden"
-        style={{ width: '60px', aspectRatio: '63/88', background: 'var(--color-surface-3)' }}
+        className="card-thumb shrink-0 rounded-lg overflow-hidden"
+        style={{ width: '60px', aspectRatio: '63/88', background: 'var(--color-surface-3)', cursor: 'zoom-in' }}
+        onClick={() => onPreviewClick(previewUrl, file.name)}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={previewUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -190,7 +347,7 @@ function CardItem({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold truncate mb-2" style={{ color: '#fff' }}>{item.file.name}</p>
+        <p className="text-sm font-semibold truncate mb-2" style={{ color: '#fff' }}>{file.name}</p>
 
         {validating && (
           <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
@@ -241,7 +398,6 @@ function CardItem({
                 onClick={() => onUpdate(card.id, { quantity: card.quantity + 1 })}
               >+</button>
             </div>
-
           </div>
         )}
       </div>
