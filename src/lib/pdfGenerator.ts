@@ -1,4 +1,4 @@
-import { PDFDocument, PageSizes, rgb, PDFPage, StandardFonts, PDFFont } from 'pdf-lib'
+import { PDFDocument, PageSizes, rgb, PDFPage, PDFImage, StandardFonts, PDFFont } from 'pdf-lib'
 
 // Dimensiones en puntos (1mm = 2.834645669pt)
 const MM = 2.834645669
