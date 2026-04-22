@@ -1,5 +1,4 @@
 import { PDFDocument, PageSizes, rgb, PDFPage, StandardFonts, PDFFont } from 'pdf-lib'
-import fontkit from '@pdf-lib/fontkit'
 
 // Dimensiones en puntos (1mm = 2.834645669pt)
 const MM = 2.834645669
@@ -33,26 +32,12 @@ export interface CardForPDF {
 
 export async function generatePrintPDF(cards: CardForPDF[], orderDetails?: any): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
-  doc.registerFontkit(fontkit)
   doc.setTitle('EuroProxy – Cartas para imprimir')
   doc.setCreator('EuroProxy')
 
   if (orderDetails) {
-    // Try to load Poppins for a friendly look, fallback to built-in Helvetica
-    let font: PDFFont
-    let fontBold: PDFFont
-    try {
-      const [regularRes, boldRes] = await Promise.all([
-        fetch('https://fonts.gstatic.com/s/poppins/v21/pXwkL03DQ2vlHDkIvI8ARg.ttf'),
-        fetch('https://fonts.gstatic.com/s/poppins/v21/pXwkL03DQ2vlHDkIvI8qRg.ttf'),
-      ])
-      const [regularBuf, boldBuf] = await Promise.all([regularRes.arrayBuffer(), boldRes.arrayBuffer()])
-      font = await doc.embedFont(regularBuf)
-      fontBold = await doc.embedFont(boldBuf)
-    } catch {
-      font = await doc.embedFont(StandardFonts.Helvetica)
-      fontBold = await doc.embedFont(StandardFonts.HelveticaBold)
-    }
+    const font = await doc.embedFont(StandardFonts.Helvetica)
+    const fontBold = await doc.embedFont(StandardFonts.HelveticaBold)
     const coverPage = doc.addPage(PageSizes.A4)
 
     // Colores corporativos
