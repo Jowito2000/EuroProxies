@@ -146,12 +146,13 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
           right: 14px;
           top: 50%;
           transform: translateY(-50%);
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
           border-radius: 50%;
-          border: 2px solid rgba(124,58,237,0.25);
-          border-top-color: #a78bfa;
-          animation: spin 0.7s linear infinite;
+          border: 2px solid rgba(255,255,255,0.1);
+          border-top-color: inherit;
+          animation: spin 0.8s linear infinite;
+          pointer-events: none;
         }
 
         /* ── Result count badge ── */
@@ -169,7 +170,24 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
           gap: 10px;
           max-height: 460px;
           overflow-y: auto;
-          padding-right: 4px;
+          padding-right: 6px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(124,58,237,0.35) transparent;
+          scrollbar-gutter: stable;
+        }
+        .cs-grid::-webkit-scrollbar {
+          width: 5px;
+        }
+        .cs-grid::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .cs-grid::-webkit-scrollbar-thumb {
+          background: rgba(124,58,237,0.35);
+          border-radius: 99px;
+          transition: background 0.2s;
+        }
+        .cs-grid::-webkit-scrollbar-thumb:hover {
+          background: rgba(124,58,237,0.6);
         }
 
         /* ── Individual card result ── */
@@ -282,6 +300,10 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
           from { opacity: 0; transform: scale(0.85) translateY(12px); }
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes spin {
+          from { transform: translateY(-50%) rotate(0deg); }
+          to   { transform: translateY(-50%) rotate(360deg); }
+        }
       `}</style>
 
       {/* Game selector pills */}
@@ -340,7 +362,7 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
           <p className="cs-count mb-3">
             {results.length} resultado{results.length !== 1 ? 's' : ''} · Haz clic en una carta para añadirla
           </p>
-          <div className="cs-grid scrollbar-thin">
+          <div className="cs-grid">
             {results.map((r, i) => (
               <div
                 key={r.key}

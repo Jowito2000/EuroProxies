@@ -126,24 +126,11 @@ export default function EditorPage() {
               )
             })}</div>
 
-          {/* Tab content */}
           {tab === 'upload' ? (
             <CardUploader onCardsReady={handleCardsReady} />
           ) : (
             <div className="surface-card p-6 rounded-2xl">
               <CardSearch onSelect={handleSearchSelect} />
-              {searchAdding && (
-                <div className="flex items-center gap-2 mt-4 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                  <span className="inline-block w-4 h-4 rounded-full border-2 border-t-transparent border-purple-500" style={{ animation: 'spin 0.7s linear infinite' }} />
-                  Descargando carta...
-                </div>
-              )}
-            </div>
-          )}
-
-          {added > 0 && (
-            <div className="success-toast mt-4">
-              ✓ {added} carta{added !== 1 ? 's' : ''} añadida{added !== 1 ? 's' : ''} al carrito
             </div>
           )}
         </div>
@@ -198,6 +185,36 @@ export default function EditorPage() {
           </div>
         </aside>
       </div>
+
+      {/* ── Fixed top-center toasts ── */}
+      {searchAdding && (
+        <div style={{
+          position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9000, display: 'flex', alignItems: 'center', gap: 10,
+          background: 'rgba(18,12,40,0.92)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(124,58,237,0.4)', borderRadius: 14,
+          padding: '10px 20px', color: '#c4b5fd', fontSize: 14, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(124,58,237,0.25)',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-purple-400 animate-spin" />
+          Descargando carta...
+        </div>
+      )}
+
+      {added > 0 && (
+        <div style={{
+          position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9000, display: 'flex', alignItems: 'center', gap: 10,
+          background: 'rgba(16,185,129,0.12)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(16,185,129,0.4)', borderRadius: 14,
+          padding: '10px 20px', color: '#34d399', fontSize: 14, fontWeight: 600,
+          boxShadow: '0 8px 32px rgba(16,185,129,0.2)',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          ✓ {added} carta{added !== 1 ? 's' : ''} añadida{added !== 1 ? 's' : ''} al carrito
+        </div>
+      )}
     </div>
   )
 }
