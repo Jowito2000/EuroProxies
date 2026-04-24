@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { parseDecklist, ParsedDeckEntry } from '@/lib/deckParser'
 import { resolveEntries } from '@/lib/scryfallResolver'
-import { SearchResult } from '@/lib/cardSearchApi'
+import { SearchResult, groupResults, CardGroup } from '@/lib/cardSearchApi'
 import { TCGGame } from '@/types/card'
 
 export interface DeckPrint {
@@ -38,9 +38,9 @@ export default function DeckImporter({ onAddPrints }: DeckImporterProps) {
       {/* Mode selector */}
       <div className="flex flex-wrap gap-2">
         {([
-          { key: 'paste' as Mode, label: 'Pegar lista', icon: '📋' },
-          { key: 'url' as Mode,   label: 'Importar URL', icon: '🔗' },
-          { key: 'sets' as Mode,  label: 'Explorar sets', icon: '📚' },
+          { key: 'paste' as Mode, label: 'Pegar lista', icon: '📋' as string | null, img: null as string | null },
+          { key: 'url'   as Mode, label: 'Importar URL', icon: '🔗' as string | null, img: null as string | null },
+          { key: 'sets'  as Mode, label: 'Explorar sets', icon: null as string | null, img: '/Images/TCGs/MTGSets.png' as string | null },
         ]).map(m => {
           const active = mode === m.key
           return (
@@ -58,8 +58,26 @@ export default function DeckImporter({ onAddPrints }: DeckImporterProps) {
                 transform: active ? 'translateY(-2px) scale(1.03)' : 'none',
                 transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
               }}
+              onMouseEnter={e => {
+                if (mode !== m.key) {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (mode !== m.key) {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                }
+              }}
             >
-              <span>{m.icon}</span>
+              {m.img
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={m.img} alt="" style={{ width: 18, height: 18, objectFit: 'contain', borderRadius: 3, filter: active ? 'none' : 'brightness(0.6) saturate(0.4)', transition: 'filter 0.3s' }} />
+                : <span style={{ display: 'inline-block', transition: 'transform 0.25s' }}>{m.icon}</span>
+              }
               {m.label}
             </button>
           )
@@ -268,6 +286,21 @@ function PasteMode({ onAddPrints }: { onAddPrints: (items: DeckPrint[]) => Promi
 
   return (
     <div className="space-y-4" {...getRootProps()}>
+      <style>{`
+        .deck-textarea {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(124,58,237,0.4) transparent;
+        }
+        .deck-textarea::-webkit-scrollbar { width: 5px; }
+        .deck-textarea::-webkit-scrollbar-track { background: transparent; }
+        .deck-textarea::-webkit-scrollbar-thumb {
+          background: rgba(124,58,237,0.4);
+          border-radius: 99px;
+        }
+        .deck-textarea::-webkit-scrollbar-thumb:hover {
+          background: rgba(124,58,237,0.7);
+        }
+      `}</style>
       <input {...getInputProps()} />
 
       <div
@@ -283,17 +316,17 @@ function PasteMode({ onAddPrints }: { onAddPrints: (items: DeckPrint[]) => Promi
           value={text}
           onChange={e => setText(e.target.value)}
           disabled={active}
-          placeholder={`Formato MTGA/MTGO — una carta por línea:\n\n4 Lightning Bolt\n1 Sol Ring (CMR) 319\n1 Atraxa, Praetors' Voice\n\nSideboard:\n2 Negate\n\n(o arrastra un .txt aquí)`}
-          rows={10}
-          className="w-full bg-transparent outline-none resize-y"
+          placeholder={`Formato MTGA/MTGO — cartas en inglés (los corchetes [Ramp], etiquetas *F* y comentarios # se ignoran):\n\n4 Lightning Bolt\n1 Sol Ring (CMR) 319\n1 Atraxa, Praetors' Voice [Ramp]\n\nSideboard:\n2 Negate\n\n(o arrastra un .txt aquí)`}
+          rows={11}
+          className="w-full bg-transparent outline-none resize-y deck-textarea"
           style={{
             padding: 16,
             color: 'var(--color-text)',
             fontSize: '0.85rem',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            lineHeight: 1.5,
+            lineHeight: 1.6,
             borderRadius: 14,
-            minHeight: 220,
+            minHeight: 240,
           }}
         />
         {isDragActive && (
@@ -462,6 +495,8 @@ function SetsMode({ onAddPrints }: { onAddPrints: (items: DeckPrint[]) => Promis
   const [loadingCards, setLoadingCards] = useState(false)
   const [preview, setPreview] = useState<SearchResult | null>(null)
   const [adding, setAdding] = useState(false)
+  const [variantPicker, setVariantPicker] = useState<CardGroup | null>(null)
+  const setGroups = cards ? groupResults(cards, 'mtg') : null
 
   useEffect(() => {
     if (!preview) return
@@ -559,8 +594,52 @@ function SetsMode({ onAddPrints }: { onAddPrints: (items: DeckPrint[]) => Promis
 
   if (!sets) {
     return (
-      <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-        Cargando catálogo de sets…
+      <div className="space-y-3">
+        <style>{`
+          @keyframes sk-shimmer {
+            0%   { background-position: -600px 0; }
+            100% { background-position: 600px 0; }
+          }
+          .sk {
+            background: linear-gradient(90deg,
+              rgba(255,255,255,0.04) 0%,
+              rgba(255,255,255,0.09) 40%,
+              rgba(124,58,237,0.08) 50%,
+              rgba(255,255,255,0.09) 60%,
+              rgba(255,255,255,0.04) 100%
+            );
+            background-size: 1200px 100%;
+            animation: sk-shimmer 1.8s ease-in-out infinite;
+          }
+        `}</style>
+
+        {/* Fake search input */}
+        <div className="sk" style={{ height: 44, borderRadius: 12 }} />
+
+        {/* Fake set rows */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '10px 12px',
+                background: 'var(--color-surface-2)',
+                border: '1px solid rgba(255,255,255,0.05)',
+                borderRadius: 10,
+                animationDelay: `${i * 0.06}s`,
+              }}
+            >
+              {/* Icon circle */}
+              <div className="sk" style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }} />
+              {/* Text lines */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="sk" style={{ height: 11, borderRadius: 6, width: `${55 + (i * 13) % 30}%`, animationDelay: `${i * 0.06 + 0.1}s` }} />
+                <div className="sk" style={{ height: 9,  borderRadius: 6, width: `${35 + (i * 7)  % 25}%`, animationDelay: `${i * 0.06 + 0.2}s`, opacity: 0.6 }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -642,15 +721,34 @@ function SetsMode({ onAddPrints }: { onAddPrints: (items: DeckPrint[]) => Promis
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <button
-          onClick={() => { setSelectedSet(null); setCards(null) }}
-          className="text-xs font-semibold"
-          style={{ color: 'var(--color-text-muted)' }}
+          onClick={() => { setSelectedSet(null); setCards(null); setVariantPicker(null) }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+            padding: '6px 12px', borderRadius: 10,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'var(--color-text-muted)',
+            transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = `${ACCENT}18`
+            e.currentTarget.style.borderColor = `${ACCENT}55`
+            e.currentTarget.style.color = '#c4b5fd'
+            e.currentTarget.style.transform = 'translateX(-3px)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.color = 'var(--color-text-muted)'
+            e.currentTarget.style.transform = 'none'
+          }}
         >
           ← Volver a sets
         </button>
         <p className="text-sm font-bold" style={{ color: '#fff' }}>
           {setInfo?.name ?? selectedSet.toUpperCase()}
-          {cards && <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}> · {cards.length} cartas</span>}
+          {setGroups && <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}> · {setGroups.length} cartas</span>}
         </p>
       </div>
 
@@ -658,7 +756,7 @@ function SetsMode({ onAddPrints }: { onAddPrints: (items: DeckPrint[]) => Promis
         <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Cargando cartas del set…</p>
       )}
 
-      {cards && (
+      {setGroups && (
         <div
           className="grid gap-2 scrollbar-thin"
           style={{
@@ -668,36 +766,101 @@ function SetsMode({ onAddPrints }: { onAddPrints: (items: DeckPrint[]) => Promis
             paddingRight: 6,
           }}
         >
-          {cards.map(c => (
-            <div
-              key={c.key}
-              onClick={() => setPreview(c)}
-              style={{
-                position: 'relative',
-                aspectRatio: '63/88',
-                borderRadius: 10,
-                overflow: 'hidden',
-                cursor: 'pointer',
-                border: '1px solid rgba(255,255,255,0.06)',
-                background: 'var(--color-surface-3)',
-                transition: 'all 0.3s',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-4px) scale(1.03)'
-                e.currentTarget.style.borderColor = `${ACCENT}88`
-                e.currentTarget.style.boxShadow = `0 10px 30px ${ACCENT}44`
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'none'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
-              title={`${c.name} · #${c.collectorNumber}`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={c.imageUrlSmall} alt={c.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {setGroups.map(g => {
+            const c = g.display
+            const multi = g.prints.length > 1
+            return (
+              <div
+                key={g.groupId}
+                onClick={() => multi ? setVariantPicker(g) : setPreview(c)}
+                style={{
+                  position: 'relative',
+                  aspectRatio: '63/88',
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--color-surface-3)',
+                  transition: 'all 0.3s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-4px) scale(1.03)'
+                  e.currentTarget.style.borderColor = `${ACCENT}88`
+                  e.currentTarget.style.boxShadow = `0 10px 30px ${ACCENT}44`
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+                title={multi ? `${c.name} — ${g.prints.length} variantes` : `${c.name} · #${c.collectorNumber}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={c.imageUrlSmall} alt={c.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {multi && (
+                  <div style={{
+                    position: 'absolute', top: 5, left: 5,
+                    padding: '2px 7px', borderRadius: 7,
+                    fontSize: '0.6rem', fontWeight: 800,
+                    background: `linear-gradient(135deg, ${ACCENT}ee, ${ACCENT}aa)`,
+                    color: '#fff', boxShadow: `0 2px 8px ${ACCENT}66`,
+                    pointerEvents: 'none', zIndex: 2,
+                  }}>
+                    {g.prints.length} vars
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {variantPicker && (
+        <div
+          onClick={() => setVariantPicker(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 999998,
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24, animation: 'fadeIn 0.18s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: 560, width: '100%',
+              background: 'var(--color-surface-2)',
+              border: `1px solid ${ACCENT}44`,
+              borderRadius: 16, padding: 20,
+              animation: 'panel-card-in 0.3s cubic-bezier(0.2,0.8,0.2,1) both',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <p style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem' }}>{variantPicker.display.name}</p>
+              <button
+                onClick={() => setVariantPicker(null)}
+                style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >✕</button>
             </div>
-          ))}
+            <p style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginBottom: 12 }}>
+              {variantPicker.prints.length} variantes — elige cuál quieres añadir
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, maxHeight: 380, overflowY: 'auto', paddingRight: 4 }}>
+              {variantPicker.prints.map(p => (
+                <div
+                  key={p.key}
+                  onClick={() => { setVariantPicker(null); setPreview(p) }}
+                  style={{ aspectRatio: '63/88', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px) scale(1.04)'; e.currentTarget.style.borderColor = `${ACCENT}88`; e.currentTarget.style.boxShadow = `0 8px 24px ${ACCENT}44` }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+                  title={`${p.set} · #${p.collectorNumber}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.imageUrlSmall} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

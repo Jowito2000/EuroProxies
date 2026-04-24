@@ -386,7 +386,7 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
               const multi = g.prints.length > 1
               const handleClick = () => {
                 if (multi) setVersionPicker(g)
-                else onSelect(r)
+                else setPreviewCard(r)
               }
               return (
                 <div
