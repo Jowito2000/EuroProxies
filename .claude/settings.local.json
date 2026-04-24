@@ -21,7 +21,28 @@
       "Bash(python -c ' *)",
       "Bash(identify F:/ProyectosClaude/EuroProxies/public/favicon.png)",
       "Bash(python3 *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "WebFetch(domain:www.mtg-print.com)",
+      "WebFetch(domain:mtg-print.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(npx eslint *)",
+      "Bash(echo \"TSC_EXIT=$?\")",
+      "Bash(node --input-type=module -e ' *)",
+      "Bash(rm -v F:/ProyectosClaude/EuroProxies/src/lib/cardSearchApi.ts F:/ProyectosClaude/EuroProxies/src/lib/scryfallResolver.ts F:/ProyectosClaude/EuroProxies/src/lib/deckParser.ts F:/ProyectosClaude/EuroProxies/src/components/CardSearch.tsx F:/ProyectosClaude/EuroProxies/src/components/DeckImporter.tsx F:/ProyectosClaude/EuroProxies/src/components/VersionPicker.tsx)",
+      "Bash(rm -rfv F:/ProyectosClaude/EuroProxies/src/app/api/deck-import F:/ProyectosClaude/EuroProxies/src/app/api/proxy-image F:/ProyectosClaude/EuroProxies/src/app/crear-cartas)",
+      "Bash(rm -rfv F:/ProyectosClaude/EuroProxies/public/images/TCGs)",
+      "Bash(rm -v F:/ProyectosClaude/EuroProxies/public/images/LorcanaMickey.png F:/ProyectosClaude/EuroProxies/public/images/MTGMininoGeneroso.png F:/ProyectosClaude/EuroProxies/public/images/OnePieceLuffy.webp F:/ProyectosClaude/EuroProxies/public/images/PokemonPikachuEx.png F:/ProyectosClaude/EuroProxies/public/images/StarWarsDarthVader.png F:/ProyectosClaude/EuroProxies/public/images/YuGiOhDragonBlanco.png)",
+      "Bash(rm -v F:/ProyectosClaude/EuroProxies/public/images/cardbacks/MTGCardBack1.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/MTGCardBack2.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/MTGCardBack3.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/MTGCardBackEuroProxy.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/PokemonCardBack1.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/PokemonCardBack2.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/PokemonCardBack3.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/PokemonCardBackEuroProxy.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/YuGiOhCardBack1.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/YuGiOhCardBack2.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/YuGiOhCardBackEuroProxy.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/LorcanaCardBack1.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/LorcanaCardBack2.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/LorcanaCardBack3.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/LorcanaCardBackEuroProxy.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/OnePieceCardBack1.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/OnePieceCardBack2.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/OnePieceCardBack3.png F:/ProyectosClaude/EuroProxies/public/images/cardbacks/OnePieceCardBackEuroProxy.png)",
+      "Bash(node *)",
+      "Bash(git ls-tree *)",
+      "Bash(git restore *)",
+      "Bash(cp UniversalCardBack.png EuroProxyUniversalCardBack.png)",
+      "Bash(cp UniversalCardBack.png __TRACKED_VAR__.png)",
+      "Bash(rm UniversalCardBack.png)",
+      "Bash(mv PokdemonCardBack1.png PokemonCardBack1.png)",
+      "Bash(mv PokdemonCardBack2.png PokemonCardBack2.png)",
+      "Bash(mv PokdemonCardBack3.png PokemonCardBack3.png)"
     ]
   }
 }

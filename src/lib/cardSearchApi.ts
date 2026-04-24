@@ -10,6 +10,33 @@ export interface SearchResult {
   imageUrl: string
   imageUrlSmall: string
   game: TCGGame
+  /** MTG only: groups all prints of the same card. Same oracleId = same card, different art/set */
+  oracleId?: string
+  /** MTG only: 3-letter set code, e.g. "cmr" */
+  setCode?: string
+  /** MTG only: collector number within the set */
+  collectorNumber?: string
+}
+
+export interface CardGroup {
+  /** Stable id for the group (oracleId for MTG, key for others) */
+  groupId: string
+  /** The print shown on the grid tile (first/most recent) */
+  display: SearchResult
+  /** All prints of this card (length === 1 for non-MTG) */
+  prints: SearchResult[]
+}
+
+export function groupResults(results: SearchResult[], game: TCGGame): CardGroup[] {
+  const map = new Map<string, CardGroup>()
+  for (const r of results) {
+    // Para MTG usamos oracleId si existe, para el resto agrupamos por el nombre exacto de la carta
+    const id = (game === 'mtg' && r.oracleId) ? r.oracleId : r.name.toLowerCase()
+    const existing = map.get(id)
+    if (existing) existing.prints.push(r)
+    else map.set(id, { groupId: id, display: r, prints: [r] })
+  }
+  return Array.from(map.values())
 }
 
 // ─── Debounced search helper ──────────────────────────────────────
@@ -62,19 +89,23 @@ async function searchMTG(q: string, signal: AbortSignal): Promise<SearchResult[]
   const json = await res.json()
   if (!json.data) return []
 
-  return json.data.slice(0, 30).map((c: any) => ({
+  return json.data.slice(0, 175).map((c: any) => ({
     key: c.id,
     name: c.name,
     set: `${c.set_name} (${c.set?.toUpperCase()})`,
     imageUrl: c.image_uris?.png || c.image_uris?.large || c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.png || '',
     imageUrlSmall: c.image_uris?.small || c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.small || '',
     game: 'mtg' as TCGGame,
+    oracleId: c.oracle_id,
+    setCode: c.set,
+    collectorNumber: c.collector_number,
   })).filter((r: SearchResult) => r.imageUrl)
 }
 
 // ─── Pokémon TCG ──────────────────────────────────────────────────
 async function searchPokemon(q: string, signal: AbortSignal): Promise<SearchResult[]> {
-  const url = `https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(q)}&pageSize=30&orderBy=-set.releaseDate`
+  const terms = q.trim().split(/\s+/).map(t => `name:*${t}*`).join(' ')
+  const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(terms)}&pageSize=30&orderBy=-set.releaseDate`
   const res = await fetch(url, { signal })
   if (!res.ok) return []
   const json = await res.json()

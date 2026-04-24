@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { SearchResult, searchCards } from '@/lib/cardSearchApi'
+import { CardGroup, SearchResult, groupResults, searchCards } from '@/lib/cardSearchApi'
 import { TCGGame } from '@/types/card'
+import VersionPicker from './VersionPicker'
 
 const GAME_LABELS: Record<string, string> = {
   mtg: 'Magic: The Gathering',
@@ -36,8 +37,11 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [previewCard, setPreviewCard] = useState<SearchResult | null>(null)
+  const [versionPicker, setVersionPicker] = useState<CardGroup | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const groups = groupResults(results, game)
 
   const accentColor = GAME_COLORS[game] ?? '#7c3aed'
 
@@ -77,6 +81,20 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
   useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [])
+
+  // Lock page scroll while the zoom preview is open. VersionPicker handles its own lock.
+  useEffect(() => {
+    if (!previewCard) return
+    const prev = document.body.style.overflow
+    const prevPad = document.body.style.paddingRight
+    const scrollbarW = window.innerWidth - document.documentElement.clientWidth
+    document.body.style.overflow = 'hidden'
+    if (scrollbarW > 0) document.body.style.paddingRight = `${scrollbarW}px`
+    return () => {
+      document.body.style.overflow = prev
+      document.body.style.paddingRight = prevPad
+    }
+  }, [previewCard])
 
   return (
     <div className="cs-root space-y-5">
@@ -351,57 +369,101 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
       </div>
 
       {/* Results */}
-      {hasSearched && !loading && results.length === 0 && (
+      {hasSearched && !loading && groups.length === 0 && (
         <div className="cs-no-results">
           No se encontraron cartas para &quot;{query}&quot;
         </div>
       )}
 
-      {results.length > 0 && (
+      {groups.length > 0 && (
         <div>
           <p className="cs-count mb-3">
-            {results.length} resultado{results.length !== 1 ? 's' : ''} · Haz clic en una carta para añadirla
+            {groups.length} carta{groups.length !== 1 ? 's' : ''} · Haz clic para añadir{game === 'mtg' ? ' o elegir versión' : 'la'}
           </p>
           <div className="cs-grid">
-            {results.map((r, i) => (
-              <div
-                key={r.key}
-                className="cs-card"
-                onClick={() => onSelect(r)}
-                style={{
-                  aspectRatio: game === 'yugioh' ? '59/86' : '63/88',
-                  animationDelay: `${Math.min(i * 30, 600)}ms`,
-                }}
-                title={`${r.name}\n${r.set}`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={r.imageUrlSmall}
-                  alt={r.name}
-                  loading="lazy"
-                  className="cs-card-img"
-                />
+            {groups.map((g, i) => {
+              const r = g.display
+              const multi = g.prints.length > 1
+              const handleClick = () => {
+                if (multi) setVersionPicker(g)
+                else onSelect(r)
+              }
+              return (
+                <div
+                  key={g.groupId}
+                  className="cs-card"
+                  onClick={handleClick}
+                  style={{
+                    aspectRatio: game === 'yugioh' ? '59/86' : '63/88',
+                    animationDelay: `${Math.min(i * 30, 600)}ms`,
+                  }}
+                  title={multi ? `${r.name} — ${g.prints.length} versiones` : `${r.name}\n${r.set}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={r.imageUrlSmall}
+                    alt={r.name}
+                    loading="lazy"
+                    className="cs-card-img"
+                  />
 
-                {/* Action buttons (zoom) */}
-                <div className="cs-card-actions">
-                  <button
-                    className="cs-action-btn cs-zoom-btn"
-                    onClick={(e) => { e.stopPropagation(); setPreviewCard(r) }}
-                    title="Hacer zoom"
-                  >
-                    🔍
-                  </button>
-                </div>
+                  {/* Version count badge (MTG only, multi-print) */}
+                  {multi && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 6,
+                        left: 6,
+                        padding: '3px 8px',
+                        borderRadius: 8,
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        background: `linear-gradient(135deg, ${accentColor}ee, ${accentColor}aa)`,
+                        color: '#fff',
+                        boxShadow: `0 2px 10px ${accentColor}66`,
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                        pointerEvents: 'none',
+                        zIndex: 2,
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {g.prints.length} versiones
+                    </div>
+                  )}
 
-                {/* Bottom info overlay */}
-                <div className="cs-card-overlay">
-                  <p className="text-[0.6rem] font-bold text-white leading-tight truncate">{r.name}</p>
-                  <p className="text-[0.5rem] truncate" style={{ color: `${accentColor}cc` }}>{r.set}</p>
+                  {/* Action buttons (zoom) */}
+                  <div className="cs-card-actions">
+                    <button
+                      className="cs-action-btn cs-zoom-btn"
+                      onClick={(e) => { e.stopPropagation(); setPreviewCard(r) }}
+                      title="Hacer zoom"
+                    >
+                      🔍
+                    </button>
+                  </div>
+
+                  {/* Bottom info overlay */}
+                  <div className="cs-card-overlay">
+                    <p className="text-[0.6rem] font-bold text-white leading-tight truncate">{r.name}</p>
+                    <p className="text-[0.5rem] truncate" style={{ color: `${accentColor}cc` }}>
+                      {multi ? `${g.prints.length} impresiones` : r.set}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
+      )}
+
+      {/* Version picker modal (MTG multi-print cards) */}
+      {versionPicker && (
+        <VersionPicker
+          group={versionPicker}
+          accentColor={accentColor}
+          onClose={() => setVersionPicker(null)}
+          onPick={p => setPreviewCard(p)}
+        />
       )}
 
       {/* Zoom preview modal */}
@@ -438,7 +500,7 @@ export default function CardSearch({ onSelect }: CardSearchProps) {
               <p className="text-sm font-bold text-white">{previewCard.name}</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{previewCard.set}</p>
               <button
-                onClick={() => { onSelect(previewCard); setPreviewCard(null) }}
+                onClick={() => { onSelect(previewCard); setPreviewCard(null); setVersionPicker(null) }}
                 className="btn-primary mt-4 px-6 py-2.5 text-sm font-bold"
                 style={{ boxShadow: `0 4px 20px ${accentColor}44` }}
               >

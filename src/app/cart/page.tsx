@@ -9,7 +9,11 @@ import DownloadPDFButton from '@/components/DownloadPDFButton'
 import { useRestoreCartImages } from '@/lib/useRestoreCartImages'
 import CountrySelect from '@/components/CountrySelect'
 import PhonePrefixSelect from '@/components/PhonePrefixSelect'
+import { lockScroll, unlockScroll } from '@/utils/scrollLock'
 import { COUNTRIES, getCountryByCode } from '@/utils/countries'
+import { getCardBacksForGame, getCardBackById, getDefaultCardBackForGame } from '@/lib/cardBacks'
+import { idbSave } from '@/lib/imageDB'
+import type { TCGGame } from '@/types/card'
 
 const GAME_GRADIENT: Record<string, string> = {
   mtg: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
@@ -34,6 +38,15 @@ export default function CartPage() {
   const isGeneratingPDF = useCartStore(s => s.isGeneratingPDF)
   const shippingDetails = useCartStore(s => s.shippingDetails)
   const updateShippingDetails = useCartStore(s => s.updateShippingDetails)
+  const updateCardBack = useCartStore(s => s.updateCardBack)
+  const updateAllCardBacks = useCartStore(s => s.updateAllCardBacks)
+  const defaultCardBacks = useCartStore(s => s.defaultCardBacks)
+  const setDefaultCardBack = useCartStore(s => s.setDefaultCardBack)
+  const customCardBacks = useCartStore(s => s.customCardBacks)
+  const setCustomCardBackImage = useCartStore(s => s.setCustomCardBackImage)
+
+  // Extraer juegos únicos en el carrito para los selectores globales
+  const uniqueGames = Array.from(new Set(cards.map(c => c.game)))
 
   const currentCountryInfo = getCountryByCode(shippingCountry)
   const isFormComplete = shippingCountry && shippingDetails.fullName && shippingDetails.phone && shippingDetails.address && shippingDetails.number && shippingDetails.city && shippingDetails.province
@@ -51,10 +64,22 @@ export default function CartPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showErrors, setShowErrors] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
+  const [backPickerCardId, setBackPickerCardId] = useState<string | null>(null)
+  const [globalBackPickerGame, setGlobalBackPickerGame] = useState<TCGGame | null>(null)
   const [hasHydrated, setHasHydrated] = useState(false)
+  const [ratioWarning, setRatioWarning] = useState<{ msg: string; onConfirm: () => void; onCancel: () => void } | null>(null)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   useRestoreCartImages()
 
   useEffect(() => { setHasHydrated(true) }, [])
+
+  useEffect(() => {
+    const isLocked = !!(backPickerCardId || globalBackPickerGame || ratioWarning || zoomedImage)
+    if (isLocked) {
+      lockScroll()
+      return () => unlockScroll()
+    }
+  }, [backPickerCardId, globalBackPickerGame, ratioWarning, zoomedImage])
 
   const handleRemove = (id: string) => {
     setRemovingIds(prev => new Set(prev).add(id))
@@ -66,6 +91,54 @@ export default function CartPage() {
         return next
       })
     }, ANIM_DURATION)
+  }
+
+  const handleCustomBackUpload = (cardBackId: string, file: File, input?: HTMLInputElement, globalGame?: TCGGame) => {
+    if (!file) return
+    
+    // Validar aspect ratio
+    const img = new Image()
+    img.onload = () => {
+      const actualRatio = img.width / img.height
+      const isYgo = cardBackId.includes('yugioh')
+      const targetRatio = isYgo ? (59 / 86) : (63 / 88)
+      const diff = Math.abs(actualRatio - targetRatio)
+
+      const proceed = () => {
+        idbSave(`back-${cardBackId}`, file).catch(console.error)
+        const blobUrl = URL.createObjectURL(file)
+        setCustomCardBackImage(cardBackId, blobUrl)
+        if (input) input.value = ''
+        if (globalGame) {
+          setDefaultCardBack(globalGame, cardBackId)
+          updateAllCardBacks(globalGame, cardBackId)
+        } else if (backPickerCardId) {
+          updateCardBack(backPickerCardId, cardBackId)
+        }
+        setRatioWarning(null)
+      }
+
+      if (diff > 0.05) {
+        setRatioWarning({
+          msg: isYgo 
+            ? "La imagen no tiene las proporciones de una carta de Yu-Gi-Oh (59x86mm). Se adaptará al espacio y puede verse deformada o recortada."
+            : "La imagen no tiene las proporciones estándar (63x88mm). Se adaptará al espacio y puede verse deformada o recortada.",
+          onConfirm: proceed,
+          onCancel: () => {
+            if (input) input.value = ''
+            setRatioWarning(null)
+          }
+        })
+      } else {
+        proceed()
+      }
+    }
+    img.src = URL.createObjectURL(file)
+  }
+
+  const getBackUrl = (backId: string) => {
+    if (backId.startsWith('custom-') && customCardBacks[backId]) return customCardBacks[backId]
+    return getCardBackById(backId).imageUrl
   }
 
   if (!hasHydrated) {
@@ -105,7 +178,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <div className="max-w-screen-xl mx-auto px-4 py-12">
       <div className="pointer-events-none select-none" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0, opacity: 0.04 }}>
         <img src="/favicon.png" alt="" style={{ maxWidth: '680px', width: '100%', objectFit: 'contain' }} />
       </div>
@@ -135,9 +208,9 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8">
         {/* Card list */}
-        <div className="lg:col-span-2 space-y-3" style={isGeneratingPDF ? { pointerEvents: 'none', opacity: 0.6, filter: 'grayscale(0.5)' } : {}}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3" style={{ alignContent: 'start', ...(isGeneratingPDF ? { pointerEvents: 'none', opacity: 0.6, filter: 'grayscale(0.5)' } : {}) }}>
           {cards.map(card => {
             const isRemoving = removingIds.has(card.id)
             return (
@@ -179,6 +252,27 @@ export default function CartPage() {
                     <button onClick={() => updateQuantity(card.id, card.quantity + 1)} className="qty-btn">+</button>
                     <button onClick={() => updateQuantity(card.id, card.quantity + 10)} className="qty-step">+10</button>
                   </div>
+
+                  <button
+                    onClick={() => setBackPickerCardId(card.id)}
+                    className="mt-2 flex items-center gap-2 text-xs px-2 py-1 rounded-lg"
+                    style={{
+                      background: 'rgba(124,58,237,0.08)',
+                      border: '1px solid rgba(124,58,237,0.2)',
+                      color: '#a78bfa',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.15)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.08)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.2)' }}
+                  >
+                    <img
+                      src={getBackUrl(card.cardBackId || getDefaultCardBackForGame(card.game))}
+                      alt="Dorso"
+                      style={{ width: 16, height: 22, borderRadius: 2, objectFit: 'cover' }}
+                    />
+                    {getCardBackById(card.cardBackId || getDefaultCardBackForGame(card.game)).name} ▾
+                  </button>
                 </div>
 
                 <button
@@ -191,14 +285,59 @@ export default function CartPage() {
             )
           })}
 
-          <Link href="/editor" className="inline-flex text-sm font-semibold mt-2"
-            style={{ color: '#a78bfa' }}>
+          <Link href="/editor"
+            className="flex items-center justify-center text-sm font-semibold rounded-xl"
+            style={{
+              color: '#a78bfa',
+              border: '2px dashed rgba(124,58,237,0.25)',
+              background: 'rgba(124,58,237,0.04)',
+              minHeight: 140,
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.5)'; e.currentTarget.style.background = 'rgba(124,58,237,0.08)' }}
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.25)'; e.currentTarget.style.background = 'rgba(124,58,237,0.04)' }}
+          >
             + Añadir más cartas
           </Link>
         </div>
 
         {/* Sidebar */}
         <aside className="space-y-4">
+          
+          {uniqueGames.length > 0 && (
+            <div className="surface-card p-4 rounded-xl space-y-3">
+              <h2 className="font-bold text-sm" style={{ color: '#fff' }}>Dorsos globales por TCG</h2>
+              {uniqueGames.map(game => {
+                const currentDefault = defaultCardBacks[game] || getDefaultCardBackForGame(game)
+                return (
+                  <button
+                    key={game}
+                    onClick={() => setGlobalBackPickerGame(game)}
+                    className="w-full flex items-center gap-3 p-2 rounded-lg"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.3)'; e.currentTarget.style.background = 'rgba(124,58,237,0.06)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                  >
+                    <img 
+                      src={getBackUrl(currentDefault)} 
+                      alt="" 
+                      style={{ width: 28, height: 39, borderRadius: 3, objectFit: 'cover' }} 
+                    />
+                    <div className="flex-1 text-left">
+                      <p className="text-xs font-semibold" style={{ color: 'var(--color-text-muted)' }}>{game.toUpperCase()}</p>
+                      <p className="text-xs font-bold" style={{ color: '#a78bfa' }}>{getCardBackById(currentDefault).name} ▾</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           <PriceCalculator />
 
           <DownloadPDFButton />
@@ -471,6 +610,412 @@ export default function CartPage() {
           </div>
         </div>
       )}
+
+      {/* Card Back Picker Modal */}
+      {backPickerCardId && (() => {
+        const targetCard = cards.find(c => c.id === backPickerCardId)
+        if (!targetCard) return null
+        const options = getCardBacksForGame(targetCard.game)
+        const currentBackId = targetCard.cardBackId || getDefaultCardBackForGame(targetCard.game)
+        return (
+          <div
+            onClick={() => setBackPickerCardId(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.85)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '24px',
+              backdropFilter: 'blur(6px)',
+              animation: 'fadeIn 0.18s ease',
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--color-surface)',
+                border: '1px solid rgba(124,58,237,0.3)',
+                borderRadius: 16,
+                padding: 24,
+                maxWidth: 600,
+                width: '100%',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+              }}
+              className="scrollbar-thin"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-base" style={{ color: '#fff' }}>
+                  Elegir dorso para: <span style={{ color: '#a78bfa' }}>{targetCard.name || 'Carta'}</span>
+                </h3>
+                <button
+                  onClick={() => setBackPickerCardId(null)}
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#fff', fontSize: '0.8rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#7c3aed'; e.currentTarget.style.transform = 'scale(1.1) rotate(90deg)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'none' }}
+                >✕</button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 12 }}>
+                {options.map(opt => {
+                  const isSelected = opt.id === currentBackId
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => {
+                        if (opt.id.startsWith('custom-') && !customCardBacks[opt.id]) {
+                          return
+                        }
+                        updateCardBack(backPickerCardId, opt.id)
+                        setBackPickerCardId(null)
+                      }}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        padding: 8, borderRadius: 10, cursor: 'pointer',
+                        background: isSelected ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: isSelected ? '2px solid #7c3aed' : '1px solid rgba(255,255,255,0.08)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)' }}
+                      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                    >
+                      <div style={{ width: '100%', position: 'relative' }}>
+                        <img
+                          src={getBackUrl(opt.id)}
+                          alt={opt.name}
+                          style={{
+                            width: '100%',
+                            aspectRatio: '63/88',
+                            objectFit: 'cover',
+                            borderRadius: 6,
+                            boxShadow: isSelected ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
+                          }}
+                        />
+                        {opt.id.startsWith('custom-') && (
+                          <label
+                            htmlFor={`file-picker-${opt.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ 
+                              position: 'absolute', bottom: 4, right: 4, 
+                              background: 'rgba(124,58,237,0.9)', borderRadius: 6, 
+                              padding: '4px 6px', display: 'flex', alignItems: 'center', gap: 4,
+                              cursor: 'pointer', zIndex: 10
+                            }}
+                          >
+                            <svg style={{ width: 10, height: 10, color: 'white' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            <span style={{ fontSize: '0.55rem', color: 'white', fontWeight: 800 }}>
+                              {customCardBacks[opt.id] ? 'CAMBIAR' : 'SUBIR'}
+                            </span>
+                          </label>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setZoomedImage(getBackUrl(opt.id))
+                          }}
+                          style={{
+                            position: 'absolute', top: 4, right: 4,
+                            width: 24, height: 24, borderRadius: 6,
+                            background: 'rgba(0,0,0,0.6)', color: '#fff',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', zIndex: 10, transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#7c3aed'; e.currentTarget.style.transform = 'scale(1.1)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.6)'; e.currentTarget.style.transform = 'none' }}
+                        >
+                          <svg style={{ width: 14, height: 14 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                          </svg>
+                        </button>
+                      </div>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 600, color: isSelected ? '#a78bfa' : 'var(--color-text-muted)', textAlign: 'center' }}>
+                        {opt.name}
+                      </span>
+                      {opt.id.startsWith('custom-') && (
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          id={`file-picker-${opt.id}`}
+                          onClick={e => e.stopPropagation()}
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) handleCustomBackUpload(opt.id, file, e.target)
+                          }}
+                        />
+                      )}
+                      {isSelected && <span style={{ fontSize: '0.6rem', color: '#7c3aed', fontWeight: 700 }}>✓ Seleccionado</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Global Card Back Picker Modal */}
+      {globalBackPickerGame && (() => {
+        const game = globalBackPickerGame as any
+        const options = getCardBacksForGame(game)
+        const currentDefault = defaultCardBacks[game] || getDefaultCardBackForGame(game)
+        return (
+          <div
+            onClick={() => setGlobalBackPickerGame(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.85)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '24px',
+              backdropFilter: 'blur(6px)',
+              animation: 'fadeIn 0.18s ease',
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--color-surface)',
+                border: '1px solid rgba(124,58,237,0.3)',
+                borderRadius: 16,
+                padding: 24,
+                maxWidth: 600,
+                width: '100%',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+              }}
+              className="scrollbar-thin"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-base" style={{ color: '#fff' }}>
+                  Dorso global por TCG: <span style={{ color: '#a78bfa' }}>{String(game).toUpperCase()}</span>
+                </h3>
+                <button
+                  onClick={() => setGlobalBackPickerGame(null)}
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#fff', fontSize: '0.8rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#7c3aed'; e.currentTarget.style.transform = 'scale(1.1) rotate(90deg)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'none' }}
+                >✕</button>
+              </div>
+
+              <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
+                Se aplicará a todas las cartas de {String(game).toUpperCase()} en tu carrito.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 12 }}>
+                {options.map(opt => {
+                  const isSelected = opt.id === currentDefault
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => {
+                        if (opt.id.startsWith('custom-') && !customCardBacks[opt.id]) {
+                          return
+                        }
+                        setDefaultCardBack(game, opt.id)
+                        updateAllCardBacks(game, opt.id)
+                        setGlobalBackPickerGame(null)
+                      }}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        padding: 8, borderRadius: 10, cursor: 'pointer',
+                        background: isSelected ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: isSelected ? '2px solid #7c3aed' : '1px solid rgba(255,255,255,0.08)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)' }}
+                      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+                    >
+                      <div style={{ width: '100%', position: 'relative' }}>
+                        <img
+                          src={getBackUrl(opt.id)}
+                          alt={opt.name}
+                          style={{
+                            width: '100%',
+                            aspectRatio: '63/88',
+                            objectFit: 'cover',
+                            borderRadius: 6,
+                            boxShadow: isSelected ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
+                          }}
+                        />
+                        {opt.id.startsWith('custom-') && (
+                          <label
+                            htmlFor={`file-global-picker-${opt.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ 
+                              position: 'absolute', bottom: 4, right: 4, 
+                              background: 'rgba(124,58,237,0.9)', borderRadius: 6, 
+                              padding: '4px 6px', display: 'flex', alignItems: 'center', gap: 4,
+                              cursor: 'pointer', zIndex: 10
+                            }}
+                          >
+                            <svg style={{ width: 10, height: 10, color: 'white' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            <span style={{ fontSize: '0.55rem', color: 'white', fontWeight: 800 }}>
+                              {customCardBacks[opt.id] ? 'CAMBIAR' : 'SUBIR'}
+                            </span>
+                          </label>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setZoomedImage(getBackUrl(opt.id))
+                          }}
+                          style={{
+                            position: 'absolute', top: 4, right: 4,
+                            width: 24, height: 24, borderRadius: 6,
+                            background: 'rgba(0,0,0,0.6)', color: '#fff',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', zIndex: 10, transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#7c3aed'; e.currentTarget.style.transform = 'scale(1.1)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.6)'; e.currentTarget.style.transform = 'none' }}
+                        >
+                          <svg style={{ width: 14, height: 14 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                          </svg>
+                        </button>
+                      </div>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 600, color: isSelected ? '#a78bfa' : 'var(--color-text-muted)', textAlign: 'center' }}>
+                        {opt.name}
+                      </span>
+                      {opt.id.startsWith('custom-') && (
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          id={`file-global-picker-${opt.id}`}
+                          onClick={e => e.stopPropagation()}
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) handleCustomBackUpload(opt.id, file, e.target, globalBackPickerGame || undefined)
+                          }}
+                        />
+                      )}
+                      {isSelected && <span style={{ fontSize: '0.6rem', color: '#7c3aed', fontWeight: 700 }}>✓ Seleccionado</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Ratio Warning Modal */}
+      {ratioWarning && (
+        <div
+          onClick={ratioWarning.onCancel}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+            backdropFilter: 'blur(8px)',
+            animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="p-8 rounded-2xl border relative overflow-hidden"
+            style={{
+              background: 'var(--color-surface)',
+              borderColor: 'rgba(245, 158, 11, 0.3)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(245, 158, 11, 0.1)',
+              animation: 'panel-card-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+              maxWidth: '420px',
+              width: '100%',
+              textAlign: 'center'
+            }}
+          >
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-3">Aviso de Proporciones</h3>
+            <p className="text-sm mb-8 leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+              {ratioWarning.msg}
+              <br /><br />
+              ¿Deseas continuar de todos modos?
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={ratioWarning.onCancel}
+                className="flex-1 py-3 rounded-xl font-bold transition-all hover:bg-white/10"
+                style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={ratioWarning.onConfirm}
+                className="flex-1 py-3 rounded-xl font-bold transition-all hover:-translate-y-0.5 active:scale-95"
+                style={{ 
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)', 
+                  color: '#fff', 
+                  boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)',
+                  border: '1px solid rgba(255,200,100,0.5)'
+                }}
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Zoom Overlay */}
+      {zoomedImage && (
+        <div
+          onClick={() => setZoomedImage(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 20000,
+            background: 'rgba(0,0,0,0.95)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+            backdropFilter: 'blur(10px)',
+            animation: 'fadeIn 0.3s ease',
+            cursor: 'zoom-out'
+          }}
+        >
+          <img
+            src={zoomedImage}
+            alt="Zoom"
+            style={{
+              maxHeight: '90vh',
+              maxWidth: '90vw',
+              borderRadius: 12,
+              boxShadow: '0 0 50px rgba(124,58,237,0.3)',
+              animation: 'zoomInCard 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both'
+            }}
+          />
+          <button
+            onClick={() => setZoomedImage(null)}
+            style={{
+              position: 'absolute', top: 20, right: 20,
+              width: 40, height: 40, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)', color: '#fff',
+              border: 'none', fontSize: '1.2rem', cursor: 'pointer'
+            }}
+          >✕</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -484,7 +1029,7 @@ function CardImage({ imageUrl, game, name, onClick }: { imageUrl: string; game: 
   }, [imageUrl])
 
   const baseStyle: React.CSSProperties = {
-    width: '52px',
+    width: '90px',
     aspectRatio: '63/88',
     borderRadius: '6px',
     flexShrink: 0,
@@ -510,7 +1055,7 @@ function CardImage({ imageUrl, game, name, onClick }: { imageUrl: string; game: 
       onError={() => setBroken(true)}
       onClick={onClick}
       className="card-thumb"
-      style={{ ...baseStyle, objectFit: 'cover' }}
+      style={{ ...baseStyle, objectFit: 'contain' }}
     />
   )
 }

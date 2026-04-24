@@ -85,14 +85,32 @@ export function useClientPDF() {
 
           if (compress) {
             const compressed = await compressImage(file)
-            return { imageBytes: compressed.buffer, mimeType: compressed.mimeType as any, quantity: card.quantity }
+            return { imageBytes: compressed.buffer, mimeType: compressed.mimeType as any, quantity: card.quantity, cardBackId: card.cardBackId }
           } else {
             const arrayBuffer = await file.arrayBuffer()
             const mimeType = file.type as CardForPDF['mimeType']
-            return { imageBytes: new Uint8Array(arrayBuffer), mimeType, quantity: card.quantity }
+            return { imageBytes: new Uint8Array(arrayBuffer), mimeType, quantity: card.quantity, cardBackId: card.cardBackId }
           }
         })
       )
+
+      // Prepare custom back images
+      const customCardBacks = useCartStore.getState().customCardBacks
+      const customBackData: Record<string, { buffer: Uint8Array, mimeType: string }> = {}
+      
+      const usedBackIds = Array.from(new Set(cards.map(c => c.cardBackId)))
+      for (const backId of usedBackIds) {
+        if (backId?.startsWith('custom-') && customCardBacks[backId]) {
+          try {
+            const res = await fetch(customCardBacks[backId])
+            const blob = await res.blob()
+            const buffer = new Uint8Array(await blob.arrayBuffer())
+            customBackData[backId] = { buffer, mimeType: blob.type }
+          } catch (e) {
+            console.error(`Error preparando dorso custom ${backId}:`, e)
+          }
+        }
+      }
 
       const pdfBytes = await new Promise<Uint8Array>((resolve, reject) => {
         const worker = new Worker(new URL('./pdfWorker.ts', import.meta.url))
@@ -111,8 +129,12 @@ export function useClientPDF() {
           worker.terminate()
         }
         
-        // Pass the cardData and orderDetails.
-        worker.postMessage({ cards: cardData, orderDetails })
+        // Pass the cardData, orderDetails and customBacks.
+        worker.postMessage({ 
+          cards: cardData, 
+          orderDetails, 
+          customCardBacks: customBackData 
+        })
       })
 
       if (!skipDownload) {

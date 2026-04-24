@@ -18,6 +18,7 @@ export function useRestoreCartImages() {
   const updateImageUrl = useCartStore(s => s.updateImageUrl)
   const files          = useFileStore(s => s.files)
   const addFile        = useFileStore(s => s.addFile)
+  const setCustomBack  = useCartStore(s => s.setCustomCardBackImage)
 
   const attempted = useRef<Set<string>>(new Set())
 
@@ -51,5 +52,25 @@ export function useRestoreCartImages() {
         updateImageUrl(res.id, freshUrl)
       }
     })()
-  }, [cards, files, addFile, updateImageUrl])
+
+    // Restaurar dorsos personalizados por juego
+    ;(async () => {
+      const customIds = ['custom-mtg', 'custom-pokemon', 'custom-yugioh', 'custom-lorcana', 'custom-onepiece']
+      
+      for (const backId of customIds) {
+        try {
+          if (attempted.current.has(`back-${backId}`)) continue
+          attempted.current.add(`back-${backId}`)
+          
+          const file = await idbGet(`back-${backId}`)
+          if (file) {
+            const url = URL.createObjectURL(file)
+            setCustomBack(backId, url)
+          }
+        } catch (e) {
+          // fail silent
+        }
+      }
+    })()
+  }, [cards, files, addFile, updateImageUrl, setCustomBack])
 }

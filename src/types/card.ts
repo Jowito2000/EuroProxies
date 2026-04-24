@@ -13,4 +13,5 @@ export interface Card {
   fileSize?: number
   width?: number
   height?: number
+  cardBackId?: string
 }

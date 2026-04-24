@@ -28,9 +28,20 @@ export interface CardForPDF {
   imageBytes: Uint8Array
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp'
   quantity: number
+  cardBackId?: string
 }
 
-export async function generatePrintPDF(cards: CardForPDF[], orderDetails?: any): Promise<Uint8Array> {
+// Estructura interna expandida: una entrada por copia de carta
+interface ExpandedCard {
+  frontImage: PDFImage
+  cardBackId: string
+}
+
+export async function generatePrintPDF(
+  cards: CardForPDF[], 
+  orderDetails?: any, 
+  customCardBacks: Record<string, { buffer: Uint8Array, mimeType: string }> = {}
+): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
   doc.setTitle('EuroProxy – Cartas para imprimir')
   doc.setCreator('EuroProxy')
@@ -125,7 +136,7 @@ export async function generatePrintPDF(cards: CardForPDF[], orderDetails?: any):
   }
 
   // Expandir cartas según quantity (Embebiendo la imagen una sola vez por carta única)
-  const expanded: PDFImage[] = []
+  const expanded: ExpandedCard[] = []
   for (const card of cards) {
     let pdfImage
     if (card.mimeType === 'image/png') {
@@ -136,36 +147,98 @@ export async function generatePrintPDF(cards: CardForPDF[], orderDetails?: any):
     }
 
     for (let i = 0; i < card.quantity; i++) {
-      expanded.push(pdfImage)
+      expanded.push({ frontImage: pdfImage, cardBackId: card.cardBackId || 'univ-1' })
+    }
+  }
+
+  // ── Descargar y cachear imágenes de dorsos ──
+  // Importamos el catálogo en tiempo de ejecución (el Worker lo resolverá)
+  const { CARD_BACKS } = await import('./cardBacks')
+  const uniqueBackIds = Array.from(new Set(expanded.map(c => c.cardBackId)))
+  const backImageCache = new Map<string, PDFImage>()
+
+  for (const backId of uniqueBackIds) {
+    const custom = customCardBacks[backId]
+    
+    if (custom) {
+      try {
+        let pdfImg: PDFImage
+        if (custom.mimeType === 'image/png') {
+          pdfImg = await doc.embedPng(custom.buffer)
+        } else {
+          pdfImg = await doc.embedJpg(custom.buffer)
+        }
+        backImageCache.set(backId, pdfImg)
+        continue
+      } catch (e) {
+        console.warn(`Error embebiendo dorso custom ${backId}:`, e)
+      }
+    }
+
+    // Fallback a los dorsos estáticos del catálogo
+    const backOption = CARD_BACKS.find(b => b.id === backId) || CARD_BACKS[0]
+    const finalUrl = backOption.imageUrl
+
+    try {
+      const res = await fetch(finalUrl)
+      const buf = new Uint8Array(await res.arrayBuffer())
+      let pdfImg: PDFImage
+      try {
+        pdfImg = await doc.embedPng(buf)
+      } catch {
+        pdfImg = await doc.embedJpg(buf)
+      }
+      backImageCache.set(backId, pdfImg)
+    } catch (e) {
+      console.warn(`No se pudo descargar el dorso ${backId} desde ${finalUrl}, se usará un rectángulo gris`)
     }
   }
 
   const totalPages = Math.ceil(expanded.length / PER_PAGE)
 
   for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-    const page = doc.addPage(PageSizes.A4)
     const slice = expanded.slice(pageIdx * PER_PAGE, (pageIdx + 1) * PER_PAGE)
 
+    // ── Página de CARAS FRONTALES ──
+    const frontPage = doc.addPage(PageSizes.A4)
     for (let i = 0; i < slice.length; i++) {
       const col = i % COLS
       const row = Math.floor(i / COLS)
 
-      // pdf-lib: y=0 está abajo, invertimos filas
       const x = MARGIN_X + col * SLOT_W
       const y = PAGE_H - MARGIN_Y - (row + 1) * SLOT_H
 
-      const pdfImage = slice[i]
-
-      // Dibujar imagen dentro del slot (con sangrado)
-      page.drawImage(pdfImage, {
-        x: x,
-        y: y,
-        width: SLOT_W,
-        height: SLOT_H,
+      frontPage.drawImage(slice[i].frontImage, {
+        x, y, width: SLOT_W, height: SLOT_H,
       })
+      drawCutMarks(frontPage, x + BLEED, y + BLEED, CARD_W, CARD_H)
+    }
 
-      // Marcas de corte en las 4 esquinas de la carta (sin sangrado)
-      drawCutMarks(page, x + BLEED, y + BLEED, CARD_W, CARD_H)
+    // ── Página de DORSOS (espejada horizontalmente para impresión dúplex) ──
+    const backPage = doc.addPage(PageSizes.A4)
+    for (let i = 0; i < slice.length; i++) {
+      const col = i % COLS
+      const row = Math.floor(i / COLS)
+
+      // Espejamos las columnas: col 0→2, 1→1, 2→0
+      const mirroredCol = (COLS - 1) - col
+
+      const x = MARGIN_X + mirroredCol * SLOT_W
+      const y = PAGE_H - MARGIN_Y - (row + 1) * SLOT_H
+
+      const backImg = backImageCache.get(slice[i].cardBackId)
+      if (backImg) {
+        backPage.drawImage(backImg, {
+          x, y, width: SLOT_W, height: SLOT_H,
+        })
+      } else {
+        // Fallback: rectángulo gris con texto
+        backPage.drawRectangle({
+          x, y, width: SLOT_W, height: SLOT_H,
+          color: rgb(0.12, 0.12, 0.2),
+        })
+      }
+      drawCutMarks(backPage, x + BLEED, y + BLEED, CARD_W, CARD_H)
     }
   }
 

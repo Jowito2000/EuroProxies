@@ -2,7 +2,8 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Card } from '@/types/card'
+import { Card, TCGGame } from '@/types/card'
+import { getDefaultCardBackForGame } from '@/lib/cardBacks'
 import { calculatePrice, getPricePerCard } from './pricing'
 import { calculateShipping } from '@/services/shipping'
 import { createClient } from '@/lib/supabase/browser'
@@ -22,12 +23,18 @@ export interface ShippingDetails {
 
 interface CartState {
   cards: Card[]
+  defaultCardBacks: Record<string, string>
   shippingCountry: string
   shippingDetails: ShippingDetails
+  customCardBacks: Record<string, string>
   addCard: (card: Card) => void
   removeCard: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   updateImageUrl: (id: string, url: string) => void
+  updateCardBack: (id: string, cardBackId: string) => void
+  updateAllCardBacks: (game: TCGGame | 'all', cardBackId: string) => void
+  setDefaultCardBack: (game: TCGGame, cardBackId: string) => void
+  setCustomCardBackImage: (cardBackId: string, imageUrl: string) => void
   clearCart: () => void
   setShippingCountry: (country: string) => void
   updateShippingDetails: (details: Partial<ShippingDetails>) => void
@@ -45,6 +52,8 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       cards: [],
+      defaultCardBacks: {},
+      customCardBacks: {},
       shippingCountry: 'ES',
       shippingDetails: { fullName: '', phonePrefix: '+34', phone: '', address: '', number: '', floor: '', door: '', city: '', province: '' },
       isGeneratingPDF: false,
@@ -52,7 +61,12 @@ export const useCartStore = create<CartState>()(
 
       addCard: (card) => set(state => {
         if (state.cards.some(c => c.id === card.id)) return state
-        return { cards: [...state.cards, card] }
+        
+        // Asignar el dorso por defecto si no lo tiene
+        const defaultBack = state.defaultCardBacks[card.game] || getDefaultCardBackForGame(card.game)
+        const newCard = { ...card, cardBackId: card.cardBackId || defaultBack }
+        
+        return { cards: [...state.cards, newCard] }
       }),
 
       removeCard: (id) => {
@@ -66,6 +80,25 @@ export const useCartStore = create<CartState>()(
 
       updateImageUrl: (id, url) => set(state => ({
         cards: state.cards.map(c => c.id === id ? { ...c, imageUrl: url } : c),
+      })),
+
+      updateCardBack: (id, cardBackId) => set(state => ({
+        cards: state.cards.map(c => c.id === id ? { ...c, cardBackId } : c),
+      })),
+
+      updateAllCardBacks: (game, cardBackId) => set(state => ({
+        cards: state.cards.map(c => {
+          if (game === 'all' || c.game === game) return { ...c, cardBackId }
+          return c
+        })
+      })),
+
+      setDefaultCardBack: (game, cardBackId) => set(state => ({
+        defaultCardBacks: { ...state.defaultCardBacks, [game]: cardBackId }
+      })),
+      
+      setCustomCardBackImage: (cardBackId, imageUrl) => set(state => ({
+        customCardBacks: { ...state.customCardBacks, [cardBackId]: imageUrl }
       })),
 
       clearCart: () => {
@@ -127,7 +160,8 @@ export const useCartStore = create<CartState>()(
     { 
       name: 'proxyforge-cart',
       partialize: (state) => ({ 
-        cards: state.cards, 
+        cards: state.cards,
+        defaultCardBacks: state.defaultCardBacks,
         shippingCountry: state.shippingCountry,
         shippingDetails: state.shippingDetails
       }),
